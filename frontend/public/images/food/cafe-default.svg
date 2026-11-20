@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none">
+  <rect width="640" height="400" fill="#F6F7F2"/>
+  <circle cx="520" cy="90" r="85" fill="#DFF2F0" opacity="0.8"/>
+  <ellipse cx="320" cy="285" rx="115" ry="20" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="3"/>
+  <path d="M242 155H398L382 266C380 276 364 282 320 282C276 282 260 276 258 266L242 155Z" fill="#FFFFFF" stroke="#D5D5D5" stroke-width="3"/>
+  <path d="M396 175C426 175 436 216 408 234C398 240 390 238 386 236" stroke="#D5D5D5" stroke-width="11" stroke-linecap="round"/>
+  <ellipse cx="320" cy="155" rx="78" ry="18" fill="#6F4E37"/>
+  <rect x="40" y="34" width="110" height="36" rx="18" fill="#167C80"/>
+  <text x="95" y="57" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">CAFÉ</text>
+</svg>
+

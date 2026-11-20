@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none">
+  <rect width="640" height="400" fill="#FFF8EE"/>
+  <circle cx="520" cy="80" r="85" fill="#FFE0B2" opacity="0.5"/>
+  <ellipse cx="320" cy="276" rx="165" ry="26" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="3"/>
+  <path d="M180 245C180 185 242 145 320 145C398 145 460 185 460 245C460 262 440 268 415 268H225C200 268 180 262 180 245Z" fill="#D48436"/>
+  <path d="M250 156L266 186M312 146L322 182M374 156L362 188" stroke="#FFF3E0" stroke-width="8" stroke-linecap="round"/>
+  <rect x="40" y="34" width="124" height="36" rx="18" fill="#167C80"/>
+  <text x="102" y="57" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">BAKERY</text>
+</svg>
+

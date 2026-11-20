@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none">
+  <rect width="640" height="400" fill="#FFF7F0"/>
+  <circle cx="520" cy="80" r="85" fill="#FFE0B2" opacity="0.55"/>
+  <circle cx="120" cy="310" r="95" fill="#DFF2F0" opacity="0.7"/>
+  <ellipse cx="320" cy="288" rx="175" ry="26" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="3"/>
+  <g transform="rotate(-10 265 210)">
+    <rect x="170" y="172" width="240" height="68" rx="34" fill="#E6BE8A" stroke="#C9965B" stroke-width="3"/>
+    <path d="M180 186C198 178 214 196 232 186" stroke="#167C80" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="195" cy="206" r="10" fill="#D32F2F"/>
+    <circle cx="212" cy="216" r="9" fill="#8D5524"/>
+    <rect x="260" y="172" width="120" height="68" rx="8" fill="#F5F5F0" opacity="0.85"/>
+  </g>
+  <g transform="rotate(8 370 230)">
+    <rect x="230" y="205" width="230" height="62" rx="31" fill="#DEB078" stroke="#BF8B4D" stroke-width="3"/>
+    <circle cx="252" cy="236" r="10" fill="#4CAF50"/>
+    <circle cx="270" cy="242" r="9" fill="#D32F2F"/>
+    <rect x="315" y="205" width="115" height="62" rx="8" fill="#DFF2F0" opacity="0.9"/>
+  </g>
+  <rect x="40" y="34" width="160" height="36" rx="18" fill="#167C80"/>
+  <text x="120" y="57" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">GRILL &amp; SHAWARMA</text>
+</svg>
+

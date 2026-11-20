@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none">
+  <rect width="640" height="400" fill="#F4F8F4"/>
+  <circle cx="110" cy="95" r="85" fill="#DFF2F0" opacity="0.85"/>
+  <circle cx="530" cy="310" r="100" fill="#FFE0B2" opacity="0.5"/>
+  <rect x="155" y="130" width="330" height="170" rx="28" fill="#FFFFFF" stroke="#D5DBD5" stroke-width="4"/>
+  <rect x="175" y="150" width="175" height="130" rx="18" fill="#FFF8E1"/>
+  <circle cx="235" cy="215" r="46" fill="#FFECB3"/>
+  <circle cx="275" cy="205" r="42" fill="#FFE082"/>
+  <rect x="200" y="196" width="115" height="18" rx="9" fill="#A0522D"/>
+  <rect x="205" y="222" width="115" height="18" rx="9" fill="#8B4513"/>
+  <rect x="364" y="150" width="102" height="60" rx="14" fill="#DFF2F0"/>
+  <circle cx="395" cy="180" r="14" fill="#4CAF50"/>
+  <circle cx="425" cy="176" r="12" fill="#E53935"/>
+  <circle cx="440" cy="188" r="10" fill="#8BC34A"/>
+  <rect x="364" y="220" width="102" height="60" rx="14" fill="#FFF3E0"/>
+  <circle cx="415" cy="250" r="18" fill="#F57C00"/>
+  <rect x="40" y="34" width="142" height="36" rx="18" fill="#167C80"/>
+  <text x="111" y="57" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">MEAL PLATTER</text>
+</svg>
+

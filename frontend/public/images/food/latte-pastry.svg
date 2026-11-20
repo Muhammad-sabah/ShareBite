@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none">
+  <rect width="640" height="400" fill="#F5F7F2"/>
+  <circle cx="520" cy="90" r="95" fill="#DFF2F0" opacity="0.8"/>
+  <circle cx="120" cy="310" r="90" fill="#FFE0B2" opacity="0.5"/>
+  <ellipse cx="260" cy="285" rx="95" ry="18" fill="#FFFFFF" stroke="#DCDCDC" stroke-width="3"/>
+  <path d="M192 165H328L312 268C310 278 298 282 260 282C222 282 210 278 208 268L192 165Z" fill="#FFFFFF" stroke="#D5D5D5" stroke-width="3"/>
+  <path d="M326 184C352 184 360 218 336 234C328 239 320 238 316 236" stroke="#D5D5D5" stroke-width="10" stroke-linecap="round"/>
+  <ellipse cx="260" cy="165" rx="68" ry="16" fill="#6F4E37"/>
+  <path d="M236 165C248 156 272 156 284 165C272 174 248 174 236 165Z" fill="#FFF8EE"/>
+  <path d="M235 128C235 112 252 110 250 94" stroke="#8D6E63" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+  <path d="M275 126C275 110 292 108 290 92" stroke="#8D6E63" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+  <ellipse cx="430" cy="278" rx="90" ry="18" fill="#FFFFFF" stroke="#DCDCDC" stroke-width="3"/>
+  <path d="M368 250C368 214 398 192 430 192C462 192 492 214 492 250C492 264 475 270 430 270C385 270 368 264 368 250Z" fill="#E6A14D"/>
+  <path d="M396 230C415 215 445 215 464 230" stroke="#FFF3E0" stroke-width="8" stroke-linecap="round"/>
+  <rect x="40" y="34" width="130" height="36" rx="18" fill="#167C80"/>
+  <text x="105" y="57" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">CAFÉ &amp; BREW</text>
+</svg>
+

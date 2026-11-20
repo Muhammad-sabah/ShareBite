@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #167C80;
+  --color-primary-deep: #105B60;
+  --color-primary-light: #55AAA5;
+  --color-primary-pale: #DFF2F0;
+  --color-accent: #F57C00;
+  --color-accent-deep: #E65100;
+  --color-accent-pale: #FFF3E0;
+  --color-app-bg: #F8FAF9;
+  --color-text-main: #0F172A;
+  --color-text-muted: #64748B;
+  --color-surface: #FFFFFF;
+}
+
+@layer base {
+  :root {
+    --sb-teal-primary: #167C80;
+    --sb-teal-deep: #105B60;
+    --sb-teal-light: #55AAA5;
+    --sb-teal-pale: #DFF2F0;
+    --sb-accent-orange: #F57C00;
+    --sb-accent-hover: #E65100;
+    --sb-accent-pale: #FFF3E0;
+    --sb-bg: #F8FAF9;
+    --sb-text-primary: #0F172A;
+    --sb-text-muted: #64748B;
+    --sb-surface: #FFFFFF;
+    --sb-border: #E2E8F0;
+
+    /* Legacy compatibility */
+    --baqaya-green: #167C80;
+    --baqaya-green-hover: #105B60;
+    --baqaya-green-pale: #DFF2F0;
+    --baqaya-orange: #F57C00;
+    --baqaya-orange-pale: #FFF3E0;
+    --baqaya-bg: #F8FAF9;
+    --baqaya-surface: #FFFFFF;
+    --baqaya-border: #E2E8F0;
+  }
+
+  html {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', Roboto, sans-serif;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #F8FAF9;
+    color: #0F172A;
+  }
+
+  /* Custom subtle focus states */
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+  }
+}

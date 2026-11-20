@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none">
+  <rect width="640" height="400" fill="#F8F9F4"/>
+  <circle cx="500" cy="300" r="100" fill="#DFF2F0" opacity="0.7"/>
+  <circle cx="110" cy="95" r="80" fill="#FFE0B2" opacity="0.5"/>
+  <ellipse cx="320" cy="282" rx="170" ry="28" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="3"/>
+  <path d="M185 182C185 152 240 135 320 135C400 135 455 152 455 182H185Z" fill="#E4A95B"/>
+  <path d="M182 184C200 176 220 194 242 184C264 174 286 194 310 184C334 174 358 194 382 184C406 174 432 192 458 184V198H182V184Z" fill="#4CAF50"/>
+  <rect x="190" y="198" width="260" height="14" rx="6" fill="#E53935"/>
+  <rect x="188" y="212" width="264" height="16" rx="6" fill="#FFD54F"/>
+  <rect x="186" y="228" width="268" height="18" rx="8" fill="#8D5524"/>
+  <path d="M185 246H455V258C455 268 440 274 420 274H220C200 274 185 268 185 258V246Z" fill="#D49444"/>
+  <rect x="40" y="34" width="150" height="36" rx="18" fill="#167C80"/>
+  <text x="115" y="57" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">SANDWICH BOX</text>
+</svg>
+

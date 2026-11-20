@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none">
+  <rect width="640" height="400" fill="#FDF6F0"/>
+  <circle cx="100" cy="80" r="85" fill="#FFE0B2" opacity="0.45"/>
+  <circle cx="540" cy="330" r="105" fill="#DFF2F0" opacity="0.6"/>
+  <ellipse cx="320" cy="285" rx="155" ry="26" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="3"/>
+  <path d="M220 265V180L390 140V265H220Z" fill="#5D3A24"/>
+  <path d="M220 205L390 165V182L220 222V205Z" fill="#F8E8D4"/>
+  <path d="M220 238L390 198V212L220 252V238Z" fill="#F8E8D4"/>
+  <path d="M220 180L390 140L325 112L220 180Z" fill="#8D5B3C"/>
+  <path d="M214 176C235 168 255 186 278 170C302 154 328 164 352 150C370 140 388 148 394 138" stroke="#3E2516" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="322" cy="126" r="18" fill="#D32F2F"/>
+  <path d="M322 108C326 96 336 92 344 96" stroke="#167C80" stroke-width="4" stroke-linecap="round"/>
+  <rect x="40" y="34" width="150" height="36" rx="18" fill="#167C80"/>
+  <text x="115" y="57" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">PASTRY &amp; CAKE</text>
+</svg>
+

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none">
+  <rect width="640" height="400" fill="#F4F9F4"/>
+  <circle cx="520" cy="310" r="95" fill="#DFF2F0" opacity="0.9"/>
+  <rect x="215" y="155" width="210" height="145" rx="16" fill="#C89B6E"/>
+  <path d="M265 155C265 115 375 115 375 155" stroke="#8D5B3C" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="275" cy="150" r="24" fill="#4CAF50"/>
+  <circle cx="325" cy="144" r="26" fill="#F57C00"/>
+  <circle cx="366" cy="152" r="22" fill="#E53935"/>
+  <rect x="40" y="34" width="128" height="36" rx="18" fill="#167C80"/>
+  <text x="104" y="57" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">GROCERY</text>
+</svg>
+

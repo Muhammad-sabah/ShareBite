@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none">
+  <rect width="640" height="400" fill="#F7F7F2"/>
+  <circle cx="110" cy="95" r="85" fill="#DFF2F0" opacity="0.8"/>
+  <circle cx="520" cy="310" r="95" fill="#FFE0B2" opacity="0.5"/>
+  <rect x="210" y="150" width="220" height="140" rx="22" fill="#FFFFFF" stroke="#167C80" stroke-width="4"/>
+  <path d="M350 188C316 188 286 212 282 252C322 248 350 222 350 188Z" fill="#4CAF50"/>
+  <rect x="40" y="34" width="136" height="36" rx="18" fill="#167C80"/>
+  <text x="108" y="57" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">SURPLUS BOX</text>
+</svg>
+

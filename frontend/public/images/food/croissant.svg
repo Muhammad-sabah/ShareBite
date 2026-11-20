@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none">
+  <rect width="640" height="400" fill="#FFF8EE"/>
+  <circle cx="520" cy="70" r="90" fill="#FFE0B2" opacity="0.55"/>
+  <circle cx="110" cy="340" r="110" fill="#DFF2F0" opacity="0.6"/>
+  <rect x="145" y="255" width="350" height="22" rx="11" fill="#E5D3B3"/>
+  <ellipse cx="320" cy="245" rx="150" ry="26" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="3"/>
+  <path d="M210 218C210 165 260 132 320 132C380 132 430 165 430 218C430 236 410 245 385 245H255C230 245 210 236 210 218Z" fill="#D9822B"/>
+  <path d="M242 225C245 170 280 135 320 135C360 135 395 170 398 225H242Z" fill="#E89B42"/>
+  <path d="M275 232C280 175 298 142 320 142C342 142 360 175 365 232H275Z" fill="#F2B463"/>
+  <path d="M195 224C185 210 194 190 215 190C226 190 232 204 228 224C224 236 205 238 195 224Z" fill="#C66E1B"/>
+  <path d="M445 224C455 210 446 190 425 190C414 190 408 204 412 224C416 236 435 238 445 224Z" fill="#C66E1B"/>
+  <circle cx="290" cy="182" r="4" fill="#FFF3E0"/>
+  <circle cx="332" cy="168" r="4" fill="#FFF3E0"/>
+  <circle cx="352" cy="196" r="3" fill="#FFF3E0"/>
+  <rect x="40" y="34" width="142" height="36" rx="18" fill="#167C80"/>
+  <text x="111" y="57" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">FRESH BAKERY</text>
+</svg>
+

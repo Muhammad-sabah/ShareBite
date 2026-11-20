@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" fill="none">
+  <rect width="640" height="400" fill="#F5F7F2"/>
+  <circle cx="110" cy="95" r="85" fill="#DFF2F0" opacity="0.8"/>
+  <circle cx="320" cy="215" r="105" fill="#FFFFFF" stroke="#D5DBD5" stroke-width="4"/>
+  <circle cx="320" cy="215" r="76" fill="#FFF8EE"/>
+  <circle cx="300" cy="210" r="24" fill="#D97724"/>
+  <circle cx="344" cy="222" r="22" fill="#4CAF50"/>
+  <circle cx="326" cy="186" r="16" fill="#E53935"/>
+  <rect x="40" y="34" width="144" height="36" rx="18" fill="#167C80"/>
+  <text x="112" y="57" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">RESTAURANT</text>
+</svg>
+
