@@ -70,7 +70,7 @@ func Load() (*Config, error) {
 
 	return &Config{
 		AppEnv:             appEnv,
-		ServerPort:         getEnv("SERVER_PORT", "8080"),
+		ServerPort:         getEnv("PORT", getEnv("SERVER_PORT", "8080")),
 		Timezone:           tz,
 		Location:           loc,
 		CORSAllowedOrigins: origins,
