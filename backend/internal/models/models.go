@@ -49,7 +49,7 @@ type User struct {
 // Shop represents a local Sulaymaniyah business managed by one Shop Owner.
 type Shop struct {
 	ID            uint64    `gorm:"primaryKey;autoIncrement" json:"id"`
-	OwnerID       uint64    `gorm:"not null;uniqueIndex:uq_shops_owner_id" json:"owner_id"`
+	OwnerID       uint64    `gorm:"not null;uniqueIndex:uq_shops_owner" json:"owner_id"`
 	ShopName      string    `gorm:"type:varchar(120);not null;uniqueIndex:uq_shops_shop_name" json:"shop_name"`
 	Category      string    `gorm:"type:enum('Bakery','Restaurant','Café','Grocery','Other');not null;index:idx_shops_category" json:"category"`
 	ContactNumber string    `gorm:"type:varchar(20);not null" json:"contact_number"`
