@@ -23,6 +23,7 @@ type Config struct {
 	DBUser     string
 	DBPassword string
 	DBName     string
+	DBTLS      bool
 
 	JWTSecret      string
 	JWTExpiryHours int
@@ -49,6 +50,7 @@ func Load() (*Config, error) {
 	}
 
 	seedDemo := strings.EqualFold(getEnv("SEED_DEMO_DATA", "true"), "true")
+	dbTLS := strings.EqualFold(getEnv("DB_TLS", "false"), "true")
 
 	originsRaw := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
 	var origins []string
@@ -79,6 +81,7 @@ func Load() (*Config, error) {
 		DBUser:             getEnv("DB_USER", "root"),
 		DBPassword:         os.Getenv("DB_PASSWORD"),
 		DBName:             getEnv("DB_NAME", "baqaya"),
+		DBTLS:              dbTLS,
 		JWTSecret:          jwtSecret,
 		JWTExpiryHours:     expiryHours,
 		SeedDemoData:       seedDemo,
@@ -88,7 +91,7 @@ func Load() (*Config, error) {
 
 // DSN builds the MySQL connection string for GORM.
 func (c *Config) DSN() string {
-	return fmt.Sprintf(
+	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		c.DBUser,
 		c.DBPassword,
@@ -96,6 +99,10 @@ func (c *Config) DSN() string {
 		c.DBPort,
 		c.DBName,
 	)
+	if c.DBTLS {
+		dsn += "&tls=true"
+	}
+	return dsn
 }
 
 func getEnv(key, fallback string) string {
