@@ -45,6 +45,41 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
+// relaxLegacyColumns finds any unexpected NOT NULL columns without default values
+// created by older iterations of the project and relaxes them to NULL DEFAULT NULL.
+func relaxLegacyColumns(db *gorm.DB, tableName string, knownCols map[string]bool) {
+	if !db.Migrator().HasTable(tableName) {
+		return
+	}
+	type colInfo struct {
+		ColumnName string
+		ColumnType string
+	}
+	var cols []colInfo
+	err := db.Raw(`
+		SELECT column_name, column_type 
+		FROM information_schema.columns 
+		WHERE table_schema = DATABASE() 
+		  AND table_name = ? 
+		  AND is_nullable = 'NO' 
+		  AND column_default IS NULL 
+		  AND extra != 'auto_increment'
+	`, tableName).Scan(&cols).Error
+	if err != nil {
+		return
+	}
+	for _, c := range cols {
+		if !knownCols[c.ColumnName] {
+			alterSQL := fmt.Sprintf("ALTER TABLE `%s` MODIFY COLUMN `%s` %s NULL DEFAULT NULL", tableName, c.ColumnName, c.ColumnType)
+			if err := db.Exec(alterSQL).Error; err != nil {
+				log.Printf("[Database] Note altering legacy column %s.%s: %v", tableName, c.ColumnName, err)
+			} else {
+				log.Printf("[Database] Relaxed legacy column %s.%s to allow NULL", tableName, c.ColumnName)
+			}
+		}
+	}
+}
+
 // AutoMigrate ensures database tables exist and match our GORM models.
 // Compatible with TiDB Cloud: skips redundant index/constraint drop errors
 // on tables that are already established with foreign key constraints.
@@ -56,18 +91,22 @@ func AutoMigrate(db *gorm.DB) error {
 		}
 	}
 
-	// 2. If legacy columns exist in 'offers', ensure they allow NULL and have defaults
-	if db.Migrator().HasTable(&models.Offer{}) {
-		if db.Migrator().HasColumn(&models.Offer{}, "title") {
-			_ = db.Exec("ALTER TABLE offers MODIFY COLUMN title VARCHAR(150) NULL DEFAULT ''").Error
-		}
-		if db.Migrator().HasColumn(&models.Offer{}, "quantity") {
-			_ = db.Exec("ALTER TABLE offers MODIFY COLUMN quantity INT UNSIGNED NULL DEFAULT 0").Error
-		}
-		if db.Migrator().HasColumn(&models.Offer{}, "price") {
-			_ = db.Exec("ALTER TABLE offers MODIFY COLUMN price INT UNSIGNED NULL DEFAULT 0").Error
-		}
-	}
+	// 2. Relax any legacy columns in 'offers' table so inserts do not fail with Error 1364
+	relaxLegacyColumns(db, "offers", map[string]bool{
+		"id": true, "offer_code": true, "shop_id": true, "food_name": true,
+		"description": true, "category": true, "image_url": true, "original_price": true,
+		"discounted_price": true, "original_quantity": true, "available_quantity": true,
+		"pickup_date": true, "pickup_start_time": true, "pickup_end_time": true,
+		"pickup_start_at": true, "pickup_end_at": true, "status": true,
+		"created_at": true, "updated_at": true,
+	})
+
+	// 3. Relax any legacy columns in 'shops' table
+	relaxLegacyColumns(db, "shops", map[string]bool{
+		"id": true, "owner_id": true, "shop_name": true, "category": true,
+		"contact_number": true, "address": true, "description": true,
+		"created_at": true, "updated_at": true,
+	})
 
 	modelsToMigrate := []interface{}{
 		&models.User{},
