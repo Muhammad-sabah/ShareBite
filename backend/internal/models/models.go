@@ -97,6 +97,8 @@ type Offer struct {
 	Category          string    `gorm:"type:enum('Bakery','Restaurant','Café','Grocery','Other');not null;index:idx_offers_category" json:"category"`
 	ImageURL          string    `gorm:"type:varchar(500)" json:"image_url"`
 	Title             string    `gorm:"column:title;default:''" json:"-"`
+	Quantity          uint      `gorm:"column:quantity;default:0" json:"-"`
+	Price             uint      `gorm:"column:price;default:0" json:"-"`
 	OriginalPrice     uint      `gorm:"not null" json:"original_price"`
 	DiscountedPrice   uint      `gorm:"not null" json:"discounted_price"`
 	OriginalQuantity  uint      `gorm:"not null" json:"original_quantity"`

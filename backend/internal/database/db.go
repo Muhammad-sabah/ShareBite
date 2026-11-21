@@ -55,10 +55,16 @@ func AutoMigrate(db *gorm.DB) error {
 		}
 	}
 
-	// 2. If legacy 'title' column exists in 'offers', ensure it allows NULL and defaults to empty string
-	if db.Migrator().HasTable(&models.Offer{}) && db.Migrator().HasColumn(&models.Offer{}, "title") {
-		if err := db.Exec("ALTER TABLE offers MODIFY COLUMN title VARCHAR(150) NULL DEFAULT ''").Error; err != nil {
-			log.Printf("[Database] Note on offers.title column migration: %v", err)
+	// 2. If legacy columns exist in 'offers', ensure they allow NULL and have defaults
+	if db.Migrator().HasTable(&models.Offer{}) {
+		if db.Migrator().HasColumn(&models.Offer{}, "title") {
+			_ = db.Exec("ALTER TABLE offers MODIFY COLUMN title VARCHAR(150) NULL DEFAULT ''").Error
+		}
+		if db.Migrator().HasColumn(&models.Offer{}, "quantity") {
+			_ = db.Exec("ALTER TABLE offers MODIFY COLUMN quantity INT UNSIGNED NULL DEFAULT 0").Error
+		}
+		if db.Migrator().HasColumn(&models.Offer{}, "price") {
+			_ = db.Exec("ALTER TABLE offers MODIFY COLUMN price INT UNSIGNED NULL DEFAULT 0").Error
 		}
 	}
 
@@ -185,86 +191,84 @@ func SeedDemoData(db *gorm.DB, loc *time.Location) error {
 		return err
 	}
 
-	return db.Transaction(func(tx *gorm.DB) error {
-		// 1. Demo Customers (Section 8.1)
-		cust1 := models.User{
-			Role:         models.RoleCustomer,
-			Username:     "customer1",
-			PasswordHash: demoHash,
-			FullName:     "Sara Ahmed",
-			PhoneNumber:  "07701234567",
+	// 1. Demo Customers (Section 8.1)
+	cust1 := models.User{
+		Role:         models.RoleCustomer,
+		Username:     "customer1",
+		PasswordHash: demoHash,
+		FullName:     "Sara Ahmed",
+		PhoneNumber:  "07701234567",
+	}
+	cust2 := models.User{
+		Role:         models.RoleCustomer,
+		Username:     "customer2",
+		PasswordHash: demoHash,
+		FullName:     "Ali Hassan",
+		PhoneNumber:  "07709876543",
+	}
+	for _, c := range []*models.User{&cust1, &cust2} {
+		if err := db.Where("username = ?", c.Username).FirstOrCreate(c).Error; err != nil {
+			log.Printf("[Database] Warning: seed customer %s: %v", c.Username, err)
 		}
-		cust2 := models.User{
-			Role:         models.RoleCustomer,
-			Username:     "customer2",
-			PasswordHash: demoHash,
-			FullName:     "Ali Hassan",
-			PhoneNumber:  "07709876543",
-		}
-		if err := tx.Create(&cust1).Error; err != nil {
-			return err
-		}
-		if err := tx.Create(&cust2).Error; err != nil {
-			return err
-		}
+	}
 
-		// 2. Demo Shop Owners & Shops (Section 8.2 - fictional demo businesses)
-		owner1 := models.User{
-			Role:         models.RoleShopOwner,
-			Username:     "bakery1",
-			PasswordHash: demoHash,
-			FullName:     "Karwan Ibrahim",
-			PhoneNumber:  "07701112233",
+	// 2. Demo Shop Owners & Shops (Section 8.2 - fictional demo businesses)
+	owner1 := models.User{
+		Role:         models.RoleShopOwner,
+		Username:     "bakery1",
+		PasswordHash: demoHash,
+		FullName:     "Karwan Ibrahim",
+		PhoneNumber:  "07701112233",
+	}
+	owner2 := models.User{
+		Role:         models.RoleShopOwner,
+		Username:     "cafe1",
+		PasswordHash: demoHash,
+		FullName:     "Dara Hassan",
+		PhoneNumber:  "07704445566",
+	}
+	owner3 := models.User{
+		Role:         models.RoleShopOwner,
+		Username:     "restaurant1",
+		PasswordHash: demoHash,
+		FullName:     "Rebwar Ali",
+		PhoneNumber:  "07707778899",
+	}
+	for _, o := range []*models.User{&owner1, &owner2, &owner3} {
+		if err := db.Where("username = ?", o.Username).FirstOrCreate(o).Error; err != nil {
+			log.Printf("[Database] Warning: seed owner %s: %v", o.Username, err)
 		}
-		owner2 := models.User{
-			Role:         models.RoleShopOwner,
-			Username:     "cafe1",
-			PasswordHash: demoHash,
-			FullName:     "Dara Hassan",
-			PhoneNumber:  "07704445566",
-		}
-		owner3 := models.User{
-			Role:         models.RoleShopOwner,
-			Username:     "restaurant1",
-			PasswordHash: demoHash,
-			FullName:     "Rebwar Ali",
-			PhoneNumber:  "07707778899",
-		}
-		for _, o := range []*models.User{&owner1, &owner2, &owner3} {
-			if err := tx.Create(o).Error; err != nil {
-				return err
-			}
-		}
+	}
 
-		shop1 := models.Shop{
-			OwnerID:       owner1.ID,
-			ShopName:      "City Star Bakery",
-			Category:      "Bakery",
-			ContactNumber: "07701112233",
-			Address:       "Salim Street, Sulaymaniyah",
-			Description:   "Fictional demo bakery offering daily surplus pastries, croissants, and cakes.",
+	shop1 := models.Shop{
+		OwnerID:       owner1.ID,
+		ShopName:      "City Star Bakery",
+		Category:      "Bakery",
+		ContactNumber: "07701112233",
+		Address:       "Salim Street, Sulaymaniyah",
+		Description:   "Fictional demo bakery offering daily surplus pastries, croissants, and cakes.",
+	}
+	shop2 := models.Shop{
+		OwnerID:       owner2.ID,
+		ShopName:      "Mawlawi Cafe",
+		Category:      "Café",
+		ContactNumber: "07704445566",
+		Address:       "Mawlawi Street, Sulaymaniyah",
+		Description:   "Fictional demo café serving specialty coffee, pastries, and fresh sandwiches.",
+	}
+	shop3 := models.Shop{
+		OwnerID:       owner3.ID,
+		ShopName:      "Sardar Restaurant",
+		Category:      "Restaurant",
+		ContactNumber: "07707778899",
+		Address:       "Rizgary Quarter, Sulaymaniyah",
+		Description:   "Fictional demo restaurant sharing surplus grilled platters and shawarma combos.",
+	}
+	for _, s := range []*models.Shop{&shop1, &shop2, &shop3} {
+		if err := db.Where("shop_name = ?", s.ShopName).FirstOrCreate(s).Error; err != nil {
+			log.Printf("[Database] Warning: seed shop %s: %v", s.ShopName, err)
 		}
-		shop2 := models.Shop{
-			OwnerID:       owner2.ID,
-			ShopName:      "Mawlawi Cafe",
-			Category:      "Café",
-			ContactNumber: "07704445566",
-			Address:       "Mawlawi Street, Sulaymaniyah",
-			Description:   "Fictional demo café serving specialty coffee, pastries, and fresh sandwiches.",
-		}
-		shop3 := models.Shop{
-			OwnerID:       owner3.ID,
-			ShopName:      "Sardar Restaurant",
-			Category:      "Restaurant",
-			ContactNumber: "07707778899",
-			Address:       "Rizgary Quarter, Sulaymaniyah",
-			Description:   "Fictional demo restaurant sharing surplus grilled platters and shawarma combos.",
-		}
-		for _, s := range []*models.Shop{&shop1, &shop2, &shop3} {
-			if err := tx.Create(s).Error; err != nil {
-				return err
-			}
-		}
+	}
 
 		// Relative pickup dates so demo offers are always live & demonstrable
 		now := time.Now().In(loc)
@@ -401,13 +405,18 @@ func SeedDemoData(db *gorm.DB, loc *time.Location) error {
 			},
 		}
 
-		for i := range offers {
-			if err := tx.Create(&offers[i]).Error; err != nil {
-				return err
-			}
+	for i := range offers {
+		o := &offers[i]
+		o.Title = o.FoodName
+		o.Quantity = o.AvailableQuantity
+		o.Price = o.DiscountedPrice
+		if err := db.Where("offer_code = ?", o.OfferCode).FirstOrCreate(o).Error; err != nil {
+			log.Printf("[Database] Warning: seed offer %s: %v", o.OfferCode, err)
 		}
+	}
 
-		// 4. Demo Reservation (Section 8.4)
+	// 4. Demo Reservation (Section 8.4)
+	if len(offers) > 0 && offers[0].ID > 0 {
 		res := models.Reservation{
 			ReservationCode: "R0001",
 			CustomerID:      cust1.ID,
@@ -417,10 +426,11 @@ func SeedDemoData(db *gorm.DB, loc *time.Location) error {
 			TotalPrice:      6000,
 			Status:          models.ReservationStatusActive,
 		}
-		if err := tx.Create(&res).Error; err != nil {
-			return err
+		if err := db.Where("reservation_code = ?", res.ReservationCode).FirstOrCreate(&res).Error; err != nil {
+			log.Printf("[Database] Warning: seed reservation %s: %v", res.ReservationCode, err)
 		}
+	}
 
-		return nil
-	})
+	log.Println("[Database] Demo data seeding finished successfully.")
+	return nil
 }
