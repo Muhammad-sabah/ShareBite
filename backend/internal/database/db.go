@@ -48,10 +48,17 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 // Compatible with TiDB Cloud: skips redundant index/constraint drop errors
 // on tables that are already established with foreign key constraints.
 func AutoMigrate(db *gorm.DB) error {
-	// Ensure users.role ENUM supports all current roles ('customer', 'shop_owner', 'admin', 'beneficiary')
+	// 1. Ensure users.role ENUM supports all current roles ('customer', 'shop_owner', 'admin', 'beneficiary')
 	if db.Migrator().HasTable(&models.User{}) {
 		if err := db.Exec("ALTER TABLE users MODIFY COLUMN role ENUM('customer', 'shop_owner', 'admin', 'beneficiary') NOT NULL DEFAULT 'customer'").Error; err != nil {
 			log.Printf("[Database] Note on users.role enum migration: %v", err)
+		}
+	}
+
+	// 2. If legacy 'title' column exists in 'offers', ensure it allows NULL and defaults to empty string
+	if db.Migrator().HasTable(&models.Offer{}) && db.Migrator().HasColumn(&models.Offer{}, "title") {
+		if err := db.Exec("ALTER TABLE offers MODIFY COLUMN title VARCHAR(150) NULL DEFAULT ''").Error; err != nil {
+			log.Printf("[Database] Note on offers.title column migration: %v", err)
 		}
 	}
 
@@ -117,43 +124,42 @@ func EnsureAdminUser(db *gorm.DB, cfg *config.Config) error {
 func EnsureDemoBeneficiary(db *gorm.DB, cfg *config.Config) error {
 	var user models.User
 	err := db.Where("role = ? AND username = ?", models.RoleBeneficiary, cfg.DemoBeneficiaryUsername).First(&user).Error
-	if err == nil {
-		// Ensure approved status
-		db.Model(&models.BeneficiaryProfile{}).
-			Where("user_id = ?", user.ID).
-			Update("verification_status", models.BeneficiaryStatusApproved)
-		return nil
-	}
-
-	hash, err := util.HashPassword(cfg.DemoBeneficiaryPassword)
 	if err != nil {
-		return fmt.Errorf("failed to hash demo beneficiary password: %w", err)
+		hash, err := util.HashPassword(cfg.DemoBeneficiaryPassword)
+		if err != nil {
+			return fmt.Errorf("failed to hash demo beneficiary password: %w", err)
+		}
+
+		user = models.User{
+			Role:         models.RoleBeneficiary,
+			Username:     cfg.DemoBeneficiaryUsername,
+			PasswordHash: hash,
+			FullName:     cfg.DemoBeneficiaryFullName,
+			PhoneNumber:  "07705556677",
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			return fmt.Errorf("failed to create demo beneficiary user: %w", err)
+		}
 	}
 
-	demoBen := models.User{
-		Role:         models.RoleBeneficiary,
-		Username:     cfg.DemoBeneficiaryUsername,
-		PasswordHash: hash,
-		FullName:     cfg.DemoBeneficiaryFullName,
-		PhoneNumber:  "07705556677",
-	}
-
-	if err := db.Create(&demoBen).Error; err != nil {
-		return fmt.Errorf("failed to create demo beneficiary user: %w", err)
-	}
-
-	profile := models.BeneficiaryProfile{
-		UserID:             demoBen.ID,
-		BeneficiaryType:    "Family",
-		FamilyMembers:      4,
-		Address:            "Mawlawi Quarter, Sulaymaniyah",
-		VerificationStatus: models.BeneficiaryStatusApproved,
-		Source:             "Event Demonstration",
-		Notes:              "Official pre-approved demonstration beneficiary for events and showcase testing.",
-	}
-
-	if err := db.Create(&profile).Error; err != nil {
-		return fmt.Errorf("failed to create demo beneficiary profile: %w", err)
+	// Ensure approved profile exists
+	var profile models.BeneficiaryProfile
+	if err := db.Where("user_id = ?", user.ID).First(&profile).Error; err != nil {
+		profile = models.BeneficiaryProfile{
+			UserID:             user.ID,
+			BeneficiaryType:    "Family",
+			FamilyMembers:      4,
+			Address:            "Mawlawi Quarter, Sulaymaniyah",
+			VerificationStatus: models.BeneficiaryStatusApproved,
+			Source:             "Admin Referral",
+			Notes:              "Official pre-approved demonstration beneficiary for events and showcase testing.",
+		}
+		if err := db.Create(&profile).Error; err != nil {
+			return fmt.Errorf("failed to create demo beneficiary profile: %w", err)
+		}
+	} else if profile.VerificationStatus != models.BeneficiaryStatusApproved {
+		db.Model(&profile).Update("verification_status", models.BeneficiaryStatusApproved)
 	}
 
 	log.Printf("[Database] Initialized approved demo beneficiary account: username=%s", cfg.DemoBeneficiaryUsername)
