@@ -48,6 +48,13 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 // Compatible with TiDB Cloud: skips redundant index/constraint drop errors
 // on tables that are already established with foreign key constraints.
 func AutoMigrate(db *gorm.DB) error {
+	// Ensure users.role ENUM supports all current roles ('customer', 'shop_owner', 'admin', 'beneficiary')
+	if db.Migrator().HasTable(&models.User{}) {
+		if err := db.Exec("ALTER TABLE users MODIFY COLUMN role ENUM('customer', 'shop_owner', 'admin', 'beneficiary') NOT NULL DEFAULT 'customer'").Error; err != nil {
+			log.Printf("[Database] Note on users.role enum migration: %v", err)
+		}
+	}
+
 	modelsToMigrate := []interface{}{
 		&models.User{},
 		&models.Shop{},
@@ -154,14 +161,14 @@ func EnsureDemoBeneficiary(db *gorm.DB, cfg *config.Config) error {
 }
 
 // SeedDemoData inserts realistic fictional Sulaymaniyah demonstration data
-// only when the users table is empty (idempotent).
+// if the customer1 demo account does not yet exist (idempotent).
 // All demo shops and accounts are fictional demonstration entities.
 func SeedDemoData(db *gorm.DB, loc *time.Location) error {
-	var userCount int64
-	if err := db.Model(&models.User{}).Count(&userCount).Error; err != nil {
+	var custCount int64
+	if err := db.Model(&models.User{}).Where("username = ?", "customer1").Count(&custCount).Error; err != nil {
 		return err
 	}
-	if userCount > 0 {
+	if custCount > 0 {
 		return nil
 	}
 
