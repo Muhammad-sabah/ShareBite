@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -172,262 +173,333 @@ func EnsureDemoBeneficiary(db *gorm.DB, cfg *config.Config) error {
 	return nil
 }
 
-// SeedDemoData inserts realistic fictional Sulaymaniyah demonstration data
-// if the customer1 demo account does not yet exist (idempotent).
+func upsertDemoUser(db *gorm.DB, username, role, password, fullName, phone string) (*models.User, error) {
+	hash, err := util.HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+
+	var user models.User
+	err = db.Where("username = ?", username).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			user = models.User{
+				Role:         role,
+				Username:     username,
+				PasswordHash: hash,
+				FullName:     fullName,
+				PhoneNumber:  phone,
+			}
+			if err := db.Create(&user).Error; err != nil {
+				return nil, err
+			}
+			return &user, nil
+		}
+		return nil, err
+	}
+
+	user.Role = role
+	user.PasswordHash = hash
+	user.FullName = fullName
+	user.PhoneNumber = phone
+	if err := db.Save(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func upsertDemoShop(db *gorm.DB, ownerID uint64, shopName, category, contact, address, desc string) (*models.Shop, error) {
+	var shop models.Shop
+	err := db.Where("shop_name = ?", shopName).First(&shop).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			shop = models.Shop{
+				OwnerID:       ownerID,
+				ShopName:      shopName,
+				Category:      category,
+				ContactNumber: contact,
+				Address:       address,
+				Description:   desc,
+			}
+			if err := db.Create(&shop).Error; err != nil {
+				return nil, err
+			}
+			return &shop, nil
+		}
+		return nil, err
+	}
+
+	shop.OwnerID = ownerID
+	shop.Category = category
+	shop.ContactNumber = contact
+	shop.Address = address
+	shop.Description = desc
+	if err := db.Save(&shop).Error; err != nil {
+		return nil, err
+	}
+	return &shop, nil
+}
+
+func upsertDemoOffer(db *gorm.DB, o *models.Offer) error {
+	o.Title = o.FoodName
+	o.Quantity = o.AvailableQuantity
+	o.Price = o.DiscountedPrice
+
+	var existing models.Offer
+	err := db.Where("offer_code = ?", o.OfferCode).First(&existing).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return db.Create(o).Error
+		}
+		return err
+	}
+
+	existing.ShopID = o.ShopID
+	existing.FoodName = o.FoodName
+	existing.Title = o.FoodName
+	existing.Description = o.Description
+	existing.Category = o.Category
+	existing.ImageURL = o.ImageURL
+	existing.OriginalPrice = o.OriginalPrice
+	existing.DiscountedPrice = o.DiscountedPrice
+	existing.Price = o.DiscountedPrice
+	existing.OriginalQuantity = o.OriginalQuantity
+	existing.AvailableQuantity = o.AvailableQuantity
+	existing.Quantity = o.AvailableQuantity
+	existing.PickupDate = o.PickupDate
+	existing.PickupStartTime = o.PickupStartTime
+	existing.PickupEndTime = o.PickupEndTime
+	existing.PickupStartAt = o.PickupStartAt
+	existing.PickupEndAt = o.PickupEndAt
+	existing.Status = models.OfferStatusActive
+
+	return db.Save(&existing).Error
+}
+
+// SeedDemoData inserts realistic fictional Sulaymaniyah demonstration data (idempotent).
 // All demo shops and accounts are fictional demonstration entities.
 func SeedDemoData(db *gorm.DB, loc *time.Location) error {
-	var custCount int64
-	if err := db.Model(&models.User{}).Where("username = ?", "customer1").Count(&custCount).Error; err != nil {
-		return err
-	}
-	if custCount > 0 {
-		return nil
-	}
+	log.Println("[Database] Ensuring fictional Sulaymaniyah demonstration data...")
 
-	log.Println("Seeding fictional Sulaymaniyah demonstration data...")
-
-	demoHash, err := util.HashPassword("pass123")
+	// 1. Demo Customers (Sara Ahmed, Ali Hassan)
+	cust1, err := upsertDemoUser(db, "customer1", models.RoleCustomer, "pass123", "Sara Ahmed", "07701234567")
 	if err != nil {
-		return err
+		log.Printf("[Database] Warning: seed customer1: %v", err)
+	}
+	_, err = upsertDemoUser(db, "customer2", models.RoleCustomer, "pass123", "Ali Hassan", "07709876543")
+	if err != nil {
+		log.Printf("[Database] Warning: seed customer2: %v", err)
 	}
 
-	// 1. Demo Customers (Section 8.1)
-	cust1 := models.User{
-		Role:         models.RoleCustomer,
-		Username:     "customer1",
-		PasswordHash: demoHash,
-		FullName:     "Sara Ahmed",
-		PhoneNumber:  "07701234567",
+	// 2. Demo Shop Owners & Shops
+	owner1, err := upsertDemoUser(db, "bakery1", models.RoleShopOwner, "pass123", "Karwan Ibrahim", "07701112233")
+	if err != nil {
+		log.Printf("[Database] Warning: seed bakery1: %v", err)
 	}
-	cust2 := models.User{
-		Role:         models.RoleCustomer,
-		Username:     "customer2",
-		PasswordHash: demoHash,
-		FullName:     "Ali Hassan",
-		PhoneNumber:  "07709876543",
+	owner2, err := upsertDemoUser(db, "cafe1", models.RoleShopOwner, "pass123", "Dara Hassan", "07704445566")
+	if err != nil {
+		log.Printf("[Database] Warning: seed cafe1: %v", err)
 	}
-	for _, c := range []*models.User{&cust1, &cust2} {
-		if err := db.Where("username = ?", c.Username).FirstOrCreate(c).Error; err != nil {
-			log.Printf("[Database] Warning: seed customer %s: %v", c.Username, err)
+	owner3, err := upsertDemoUser(db, "restaurant1", models.RoleShopOwner, "pass123", "Rebwar Ali", "07707778899")
+	if err != nil {
+		log.Printf("[Database] Warning: seed restaurant1: %v", err)
+	}
+
+	var shop1, shop2, shop3 *models.Shop
+	if owner1 != nil {
+		shop1, err = upsertDemoShop(db, owner1.ID, "City Star Bakery", "Bakery", "07701112233", "Salim Street, Sulaymaniyah", "Fictional demo bakery offering daily surplus pastries, croissants, and cakes.")
+		if err != nil {
+			log.Printf("[Database] Warning: seed shop1: %v", err)
+		}
+	}
+	if owner2 != nil {
+		shop2, err = upsertDemoShop(db, owner2.ID, "Mawlawi Cafe", "Café", "07704445566", "Mawlawi Street, Sulaymaniyah", "Fictional demo café serving specialty coffee, pastries, and fresh sandwiches.")
+		if err != nil {
+			log.Printf("[Database] Warning: seed shop2: %v", err)
+		}
+	}
+	if owner3 != nil {
+		shop3, err = upsertDemoShop(db, owner3.ID, "Sardar Restaurant", "Restaurant", "07707778899", "Rizgary Quarter, Sulaymaniyah", "Fictional demo restaurant sharing surplus grilled platters and shawarma combos.")
+		if err != nil {
+			log.Printf("[Database] Warning: seed shop3: %v", err)
 		}
 	}
 
-	// 2. Demo Shop Owners & Shops (Section 8.2 - fictional demo businesses)
-	owner1 := models.User{
-		Role:         models.RoleShopOwner,
-		Username:     "bakery1",
-		PasswordHash: demoHash,
-		FullName:     "Karwan Ibrahim",
-		PhoneNumber:  "07701112233",
-	}
-	owner2 := models.User{
-		Role:         models.RoleShopOwner,
-		Username:     "cafe1",
-		PasswordHash: demoHash,
-		FullName:     "Dara Hassan",
-		PhoneNumber:  "07704445566",
-	}
-	owner3 := models.User{
-		Role:         models.RoleShopOwner,
-		Username:     "restaurant1",
-		PasswordHash: demoHash,
-		FullName:     "Rebwar Ali",
-		PhoneNumber:  "07707778899",
-	}
-	for _, o := range []*models.User{&owner1, &owner2, &owner3} {
-		if err := db.Where("username = ?", o.Username).FirstOrCreate(o).Error; err != nil {
-			log.Printf("[Database] Warning: seed owner %s: %v", o.Username, err)
-		}
+	// Relative pickup dates so demo offers are always live & demonstrable
+	now := time.Now().In(loc)
+	todayDate := now.Format("2006-01-02")
+	tomorrowDate := now.Add(24 * time.Hour).Format("2006-01-02")
+
+	// If current local time is after 22:30, place today's offers on tomorrow too so countdowns stay positive
+	firstDay := todayDate
+	if now.Hour() >= 22 {
+		firstDay = tomorrowDate
 	}
 
-	shop1 := models.Shop{
-		OwnerID:       owner1.ID,
-		ShopName:      "City Star Bakery",
-		Category:      "Bakery",
-		ContactNumber: "07701112233",
-		Address:       "Salim Street, Sulaymaniyah",
-		Description:   "Fictional demo bakery offering daily surplus pastries, croissants, and cakes.",
-	}
-	shop2 := models.Shop{
-		OwnerID:       owner2.ID,
-		ShopName:      "Mawlawi Cafe",
-		Category:      "Café",
-		ContactNumber: "07704445566",
-		Address:       "Mawlawi Street, Sulaymaniyah",
-		Description:   "Fictional demo café serving specialty coffee, pastries, and fresh sandwiches.",
-	}
-	shop3 := models.Shop{
-		OwnerID:       owner3.ID,
-		ShopName:      "Sardar Restaurant",
-		Category:      "Restaurant",
-		ContactNumber: "07707778899",
-		Address:       "Rizgary Quarter, Sulaymaniyah",
-		Description:   "Fictional demo restaurant sharing surplus grilled platters and shawarma combos.",
-	}
-	for _, s := range []*models.Shop{&shop1, &shop2, &shop3} {
-		if err := db.Where("shop_name = ?", s.ShopName).FirstOrCreate(s).Error; err != nil {
-			log.Printf("[Database] Warning: seed shop %s: %v", s.ShopName, err)
-		}
+	makeWindow := func(dateStr, startHHMM, endHHMM string) (time.Time, time.Time) {
+		s, _ := time.ParseInLocation("2006-01-02 15:04", dateStr+" "+startHHMM, loc)
+		e, _ := time.ParseInLocation("2006-01-02 15:04", dateStr+" "+endHHMM, loc)
+		return s, e
 	}
 
-		// Relative pickup dates so demo offers are always live & demonstrable
-		now := time.Now().In(loc)
-		todayDate := now.Format("2006-01-02")
-		tomorrowDate := now.Add(24 * time.Hour).Format("2006-01-02")
+	s1, e1 := makeWindow(firstDay, "14:00", "23:45")
+	s2, e2 := makeWindow(firstDay, "16:00", "23:55")
+	s3, e3 := makeWindow(firstDay, "15:00", "23:30")
+	s4, e4 := makeWindow(tomorrowDate, "13:00", "18:00")
+	s5, e5 := makeWindow(tomorrowDate, "15:00", "21:00")
+	s6, e6 := makeWindow(tomorrowDate, "16:00", "22:00")
 
-		// If current local time is after 22:30, place today's offers on tomorrow too so countdowns stay positive
-		firstDay := todayDate
-		if now.Hour() >= 22 {
-			firstDay = tomorrowDate
-		}
+	shop1ID := uint64(1)
+	if shop1 != nil {
+		shop1ID = shop1.ID
+	}
+	shop2ID := uint64(2)
+	if shop2 != nil {
+		shop2ID = shop2.ID
+	}
+	shop3ID := uint64(3)
+	if shop3 != nil {
+		shop3ID = shop3.ID
+	}
 
-		makeWindow := func(dateStr, startHHMM, endHHMM string) (time.Time, time.Time) {
-			s, _ := time.ParseInLocation("2006-01-02 15:04", dateStr+" "+startHHMM, loc)
-			e, _ := time.ParseInLocation("2006-01-02 15:04", dateStr+" "+endHHMM, loc)
-			return s, e
-		}
-
-		s1, e1 := makeWindow(firstDay, "14:00", "23:45")
-		s2, e2 := makeWindow(firstDay, "16:00", "23:55")
-		s3, e3 := makeWindow(firstDay, "15:00", "23:30")
-		s4, e4 := makeWindow(tomorrowDate, "13:00", "18:00")
-		s5, e5 := makeWindow(tomorrowDate, "15:00", "21:00")
-		s6, e6 := makeWindow(tomorrowDate, "16:00", "22:00")
-
-		offers := []models.Offer{
-			{
-				OfferCode:         "O0001",
-				ShopID:            shop1.ID,
-				FoodName:          "Croissant Box (6 pcs)",
-				Description:       "Assorted freshly baked butter and chocolate croissants from today's batch.",
-				Category:          "Bakery",
-				ImageURL:          "/images/food/croissant.svg",
-				OriginalPrice:     5000,
-				DiscountedPrice:   3000,
-				OriginalQuantity:  8,
-				AvailableQuantity: 6, // 8 - 2 reserved in demo reservation R0001
-				PickupDate:        firstDay,
-				PickupStartTime:   "14:00",
-				PickupEndTime:     "23:45",
-				PickupStartAt:     s1,
-				PickupEndAt:       e1,
-				Status:            models.OfferStatusActive,
-			},
-			{
-				OfferCode:         "O0002",
-				ShopID:            shop1.ID,
-				FoodName:          "Cake Slice Assortment",
-				Description:       "Four generous slices of fresh sponge, pistachio, and chocolate layer cake.",
-				Category:          "Bakery",
-				ImageURL:          "/images/food/cake.svg",
-				OriginalPrice:     8000,
-				DiscountedPrice:   5500,
-				OriginalQuantity:  4,
-				AvailableQuantity: 4,
-				PickupDate:        firstDay,
-				PickupStartTime:   "16:00",
-				PickupEndTime:     "23:55",
-				PickupStartAt:     s2,
-				PickupEndAt:       e2,
-				Status:            models.OfferStatusActive,
-			},
-			{
-				OfferCode:         "O0003",
-				ShopID:            shop2.ID,
-				FoodName:          "Latte & Pastry Set",
-				Description:       "Two signature iced or hot lattes paired with warm danish pastries.",
-				Category:          "Café",
-				ImageURL:          "/images/food/latte-pastry.svg",
-				OriginalPrice:     7000,
-				DiscountedPrice:   4500,
-				OriginalQuantity:  6,
-				AvailableQuantity: 6,
-				PickupDate:        firstDay,
-				PickupStartTime:   "15:00",
-				PickupEndTime:     "23:30",
-				PickupStartAt:     s3,
-				PickupEndAt:       e3,
-				Status:            models.OfferStatusActive,
-			},
-			{
-				OfferCode:         "O0004",
-				ShopID:            shop2.ID,
-				FoodName:          "Sandwich Box",
-				Description:       "Two toasted artisan paninis with smoked turkey, mozzarella, and herbs.",
-				Category:          "Café",
-				ImageURL:          "/images/food/sandwich.svg",
-				OriginalPrice:     5000,
-				DiscountedPrice:   3500,
-				OriginalQuantity:  5,
-				AvailableQuantity: 5,
-				PickupDate:        tomorrowDate,
-				PickupStartTime:   "13:00",
-				PickupEndTime:     "18:00",
-				PickupStartAt:     s4,
-				PickupEndAt:       e4,
-				Status:            models.OfferStatusActive,
-			},
-			{
-				OfferCode:         "O0005",
-				ShopID:            shop3.ID,
-				FoodName:          "Chicken Shawarma Combo",
-				Description:       "Two large charcoal-roasted chicken shawarma wraps with seasoned garlic fries.",
-				Category:          "Restaurant",
-				ImageURL:          "/images/food/shawarma.svg",
-				OriginalPrice:     6000,
-				DiscountedPrice:   4000,
-				OriginalQuantity:  10,
-				AvailableQuantity: 10,
-				PickupDate:        tomorrowDate,
-				PickupStartTime:   "15:00",
-				PickupEndTime:     "21:00",
-				PickupStartAt:     s5,
-				PickupEndAt:       e5,
-				Status:            models.OfferStatusActive,
-			},
-			{
-				OfferCode:         "O0006",
-				ShopID:            shop3.ID,
-				FoodName:          "Meal Box (Rice & Grilled)",
-				Description:       "Fragrant basmati rice platter with charcoal-grilled chicken skewers and fresh salad.",
-				Category:          "Restaurant",
-				ImageURL:          "/images/food/meal-box.svg",
-				OriginalPrice:     10000,
-				DiscountedPrice:   7000,
-				OriginalQuantity:  6,
-				AvailableQuantity: 6,
-				PickupDate:        tomorrowDate,
-				PickupStartTime:   "16:00",
-				PickupEndTime:     "22:00",
-				PickupStartAt:     s6,
-				PickupEndAt:       e6,
-				Status:            models.OfferStatusActive,
-			},
-		}
+	offers := []models.Offer{
+		{
+			OfferCode:         "O0001",
+			ShopID:            shop1ID,
+			FoodName:          "Croissant Box (6 pcs)",
+			Description:       "Assorted freshly baked butter and chocolate croissants from today's batch.",
+			Category:          "Bakery",
+			ImageURL:          "/images/food/croissant.svg",
+			OriginalPrice:     5000,
+			DiscountedPrice:   3000,
+			OriginalQuantity:  8,
+			AvailableQuantity: 6,
+			PickupDate:        firstDay,
+			PickupStartTime:   "14:00",
+			PickupEndTime:     "23:45",
+			PickupStartAt:     s1,
+			PickupEndAt:       e1,
+			Status:            models.OfferStatusActive,
+		},
+		{
+			OfferCode:         "O0002",
+			ShopID:            shop1ID,
+			FoodName:          "Cake Slice Assortment",
+			Description:       "Four generous slices of fresh sponge, pistachio, and chocolate layer cake.",
+			Category:          "Bakery",
+			ImageURL:          "/images/food/cake.svg",
+			OriginalPrice:     8000,
+			DiscountedPrice:   5500,
+			OriginalQuantity:  4,
+			AvailableQuantity: 4,
+			PickupDate:        firstDay,
+			PickupStartTime:   "16:00",
+			PickupEndTime:     "23:55",
+			PickupStartAt:     s2,
+			PickupEndAt:       e2,
+			Status:            models.OfferStatusActive,
+		},
+		{
+			OfferCode:         "O0003",
+			ShopID:            shop2ID,
+			FoodName:          "Latte & Pastry Set",
+			Description:       "Two signature iced or hot lattes paired with warm danish pastries.",
+			Category:          "Café",
+			ImageURL:          "/images/food/latte-pastry.svg",
+			OriginalPrice:     7000,
+			DiscountedPrice:   4500,
+			OriginalQuantity:  6,
+			AvailableQuantity: 6,
+			PickupDate:        firstDay,
+			PickupStartTime:   "15:00",
+			PickupEndTime:     "23:30",
+			PickupStartAt:     s3,
+			PickupEndAt:       e3,
+			Status:            models.OfferStatusActive,
+		},
+		{
+			OfferCode:         "O0004",
+			ShopID:            shop2ID,
+			FoodName:          "Sandwich Box",
+			Description:       "Two toasted artisan paninis with smoked turkey, mozzarella, and herbs.",
+			Category:          "Café",
+			ImageURL:          "/images/food/sandwich.svg",
+			OriginalPrice:     5000,
+			DiscountedPrice:   3500,
+			OriginalQuantity:  5,
+			AvailableQuantity: 5,
+			PickupDate:        tomorrowDate,
+			PickupStartTime:   "13:00",
+			PickupEndTime:     "18:00",
+			PickupStartAt:     s4,
+			PickupEndAt:       e4,
+			Status:            models.OfferStatusActive,
+		},
+		{
+			OfferCode:         "O0005",
+			ShopID:            shop3ID,
+			FoodName:          "Chicken Shawarma Combo",
+			Description:       "Two large charcoal-roasted chicken shawarma wraps with seasoned garlic fries.",
+			Category:          "Restaurant",
+			ImageURL:          "/images/food/shawarma.svg",
+			OriginalPrice:     6000,
+			DiscountedPrice:   4000,
+			OriginalQuantity:  10,
+			AvailableQuantity: 10,
+			PickupDate:        tomorrowDate,
+			PickupStartTime:   "15:00",
+			PickupEndTime:     "21:00",
+			PickupStartAt:     s5,
+			PickupEndAt:       e5,
+			Status:            models.OfferStatusActive,
+		},
+		{
+			OfferCode:         "O0006",
+			ShopID:            shop3ID,
+			FoodName:          "Meal Box (Rice & Grilled)",
+			Description:       "Fragrant basmati rice platter with charcoal-grilled chicken skewers and fresh salad.",
+			Category:          "Restaurant",
+			ImageURL:          "/images/food/meal-box.svg",
+			OriginalPrice:     10000,
+			DiscountedPrice:   7000,
+			OriginalQuantity:  6,
+			AvailableQuantity: 6,
+			PickupDate:        tomorrowDate,
+			PickupStartTime:   "16:00",
+			PickupEndTime:     "22:00",
+			PickupStartAt:     s6,
+			PickupEndAt:       e6,
+			Status:            models.OfferStatusActive,
+		},
+	}
 
 	for i := range offers {
-		o := &offers[i]
-		o.Title = o.FoodName
-		o.Quantity = o.AvailableQuantity
-		o.Price = o.DiscountedPrice
-		if err := db.Where("offer_code = ?", o.OfferCode).FirstOrCreate(o).Error; err != nil {
-			log.Printf("[Database] Warning: seed offer %s: %v", o.OfferCode, err)
+		if err := upsertDemoOffer(db, &offers[i]); err != nil {
+			log.Printf("[Database] Warning: seed offer %s: %v", offers[i].OfferCode, err)
 		}
 	}
 
 	// 4. Demo Reservation (Section 8.4)
-	if len(offers) > 0 && offers[0].ID > 0 {
-		res := models.Reservation{
-			ReservationCode: "R0001",
-			CustomerID:      cust1.ID,
-			OfferID:         offers[0].ID,
-			Quantity:        2,
-			UnitPrice:       3000,
-			TotalPrice:      6000,
-			Status:          models.ReservationStatusActive,
-		}
-		if err := db.Where("reservation_code = ?", res.ReservationCode).FirstOrCreate(&res).Error; err != nil {
-			log.Printf("[Database] Warning: seed reservation %s: %v", res.ReservationCode, err)
+	if cust1 != nil && len(offers) > 0 {
+		var firstOffer models.Offer
+		if err := db.Where("offer_code = ?", "O0001").First(&firstOffer).Error; err == nil {
+			var existing models.Reservation
+			if err := db.Where("reservation_code = ?", "R0001").First(&existing).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					res := models.Reservation{
+						ReservationCode: "R0001",
+						CustomerID:      cust1.ID,
+						OfferID:         firstOffer.ID,
+						Quantity:        2,
+						UnitPrice:       3000,
+						TotalPrice:      6000,
+						Status:          models.ReservationStatusActive,
+					}
+					if err := db.Create(&res).Error; err != nil {
+						log.Printf("[Database] Warning: seed reservation R0001: %v", err)
+					}
+				}
+			}
 		}
 	}
 
