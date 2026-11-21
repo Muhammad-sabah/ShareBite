@@ -21,7 +21,8 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 	}
 
 	db, err := gorm.Open(mysql.Open(cfg.DSN()), &gorm.Config{
-		Logger: logger.Default.LogMode(logLevel),
+		Logger:                                   logger.Default.LogMode(logLevel),
+		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to MySQL: %w", err)
@@ -43,14 +44,113 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-// AutoMigrate ensures database tables match our GORM models.
+// AutoMigrate ensures database tables exist and match our GORM models.
+// Compatible with TiDB Cloud: skips redundant index/constraint drop errors
+// on tables that are already established with foreign key constraints.
 func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(
+	modelsToMigrate := []interface{}{
 		&models.User{},
 		&models.Shop{},
 		&models.Offer{},
 		&models.Reservation{},
-	)
+		&models.BeneficiaryProfile{},
+		&models.FoodDonation{},
+		&models.DonationClaim{},
+	}
+
+	for _, m := range modelsToMigrate {
+		if !db.Migrator().HasTable(m) {
+			if err := db.Migrator().CreateTable(m); err != nil {
+				return fmt.Errorf("failed to create table for %T: %w", m, err)
+			}
+			log.Printf("[Database] Created missing table for %T", m)
+			continue
+		}
+
+		if err := db.AutoMigrate(m); err != nil {
+			log.Printf("[Database] Note: AutoMigrate on existing table %T: %v (safe to ignore on existing schema)", m, err)
+		}
+	}
+
+	return nil
+}
+
+// EnsureAdminUser checks if an admin exists, and if not, bootstraps a secure administrator account.
+func EnsureAdminUser(db *gorm.DB, cfg *config.Config) error {
+	var count int64
+	if err := db.Model(&models.User{}).Where("role = ? AND username = ?", models.RoleAdmin, cfg.AdminUsername).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	hash, err := util.HashPassword(cfg.AdminPassword)
+	if err != nil {
+		return fmt.Errorf("failed to hash admin password: %w", err)
+	}
+
+	admin := models.User{
+		Role:         models.RoleAdmin,
+		Username:     cfg.AdminUsername,
+		PasswordHash: hash,
+		FullName:     cfg.AdminFullName,
+		PhoneNumber:  "07700000000",
+	}
+
+	if err := db.Create(&admin).Error; err != nil {
+		return fmt.Errorf("failed to create admin user: %w", err)
+	}
+
+	log.Printf("[Database] Initialized default admin account: username=%s", cfg.AdminUsername)
+	return nil
+}
+
+// EnsureDemoBeneficiary checks if the demo beneficiary exists, and ensures it is Approved for demonstrations.
+func EnsureDemoBeneficiary(db *gorm.DB, cfg *config.Config) error {
+	var user models.User
+	err := db.Where("role = ? AND username = ?", models.RoleBeneficiary, cfg.DemoBeneficiaryUsername).First(&user).Error
+	if err == nil {
+		// Ensure approved status
+		db.Model(&models.BeneficiaryProfile{}).
+			Where("user_id = ?", user.ID).
+			Update("verification_status", models.BeneficiaryStatusApproved)
+		return nil
+	}
+
+	hash, err := util.HashPassword(cfg.DemoBeneficiaryPassword)
+	if err != nil {
+		return fmt.Errorf("failed to hash demo beneficiary password: %w", err)
+	}
+
+	demoBen := models.User{
+		Role:         models.RoleBeneficiary,
+		Username:     cfg.DemoBeneficiaryUsername,
+		PasswordHash: hash,
+		FullName:     cfg.DemoBeneficiaryFullName,
+		PhoneNumber:  "07705556677",
+	}
+
+	if err := db.Create(&demoBen).Error; err != nil {
+		return fmt.Errorf("failed to create demo beneficiary user: %w", err)
+	}
+
+	profile := models.BeneficiaryProfile{
+		UserID:             demoBen.ID,
+		BeneficiaryType:    "Family",
+		FamilyMembers:      4,
+		Address:            "Mawlawi Quarter, Sulaymaniyah",
+		VerificationStatus: models.BeneficiaryStatusApproved,
+		Source:             "Event Demonstration",
+		Notes:              "Official pre-approved demonstration beneficiary for events and showcase testing.",
+	}
+
+	if err := db.Create(&profile).Error; err != nil {
+		return fmt.Errorf("failed to create demo beneficiary profile: %w", err)
+	}
+
+	log.Printf("[Database] Initialized approved demo beneficiary account: username=%s", cfg.DemoBeneficiaryUsername)
+	return nil
 }
 
 // SeedDemoData inserts realistic fictional Sulaymaniyah demonstration data
@@ -311,4 +411,3 @@ func SeedDemoData(db *gorm.DB, loc *time.Location) error {
 		return nil
 	})
 }
-

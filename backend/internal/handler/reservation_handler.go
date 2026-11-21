@@ -109,4 +109,3 @@ func (h *ReservationHandler) GetShopReservationDetail(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"reservation": res})
 }
-

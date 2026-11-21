@@ -11,6 +11,7 @@ import {
   X,
   MapPin,
   ExternalLink,
+  HeartHandshake,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ShareBiteLogo } from '../components/ShareBiteLogo';
@@ -27,9 +28,11 @@ export const ShopLayout: React.FC<{ children: React.ReactNode }> = ({ children }
 
   const navItems = [
     { to: '/shop/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/shop/offers', label: 'My Offers', icon: Package },
+    { to: '/shop/offers', label: 'Commercial Offers', icon: Package },
     { to: '/shop/offers/new', label: 'Create Offer', icon: PlusCircle },
     { to: '/shop/reservations', label: 'Reservations', icon: ClipboardList },
+    { to: '/shop/donations', label: 'Food Donations', icon: HeartHandshake },
+    { to: '/shop/donations/new', label: 'Donate Food', icon: PlusCircle },
     { to: '/shop/profile', label: 'Business Profile', icon: Store },
   ];
 
@@ -62,13 +65,53 @@ export const ShopLayout: React.FC<{ children: React.ReactNode }> = ({ children }
       </div>
 
       <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-        {navItems.map((item) => {
+        <div className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
+          Marketplace
+        </div>
+        {navItems.slice(0, 4).map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === '/shop/offers'}
+              className={linkClass}
+              onClick={() => setDrawerOpen(false)}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span>{item.label}</span>
+            </NavLink>
+          );
+        })}
+
+        <div className="px-3 pt-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
+          Community Impact
+        </div>
+        {navItems.slice(4, 6).map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/shop/donations'}
+              className={linkClass}
+              onClick={() => setDrawerOpen(false)}
+            >
+              <Icon className="w-4 h-4 shrink-0 text-[#167C80]" />
+              <span>{item.label}</span>
+            </NavLink>
+          );
+        })}
+
+        <div className="px-3 pt-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
+          Settings
+        </div>
+        {navItems.slice(6).map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
               className={linkClass}
               onClick={() => setDrawerOpen(false)}
             >
@@ -148,11 +191,11 @@ export const ShopLayout: React.FC<{ children: React.ReactNode }> = ({ children }
             </span>
           </div>
           <Link
-            to="/shop/offers/new"
+            to="/shop/donations/new"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#167C80] text-white text-xs font-semibold hover:bg-[#105B60] transition shadow-xs"
           >
             <PlusCircle className="w-3.5 h-3.5" />
-            <span>New Offer</span>
+            <span>Donate Food</span>
           </Link>
         </header>
 

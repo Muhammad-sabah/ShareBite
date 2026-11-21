@@ -11,6 +11,9 @@ import {
   User,
   Bell,
   ChevronDown,
+  HeartHandshake,
+  ShieldCheck,
+  Gift,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ShareBiteLogo } from './ShareBiteLogo';
@@ -38,6 +41,19 @@ export const Navbar: React.FC = () => {
         : 'text-[#475569] hover:text-[#167C80] hover:bg-[#F1F5F9]'
     }`;
 
+  const getRoleBadge = () => {
+    switch (user?.role) {
+      case 'admin':
+        return 'Admin';
+      case 'beneficiary':
+        return 'Beneficiary';
+      case 'shop_owner':
+        return 'Shop Owner';
+      default:
+        return 'Customer';
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#E2E8F0]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -58,34 +74,70 @@ export const Navbar: React.FC = () => {
               Home
             </NavLink>
 
+            {/* Commercial Marketplace is always visible */}
             <NavLink to="/marketplace" className={navLinkClass}>
               Marketplace
             </NavLink>
 
-            <a
-              href="/#how-it-works"
-              className="px-4 py-2 rounded-xl text-sm font-semibold text-[#475569] hover:text-[#167C80] hover:bg-[#F1F5F9] transition"
-            >
-              How it Works
-            </a>
+            {/* Beneficiary Specific Navigation */}
+            {user?.role === 'beneficiary' && (
+              <>
+                <NavLink to="/donations" className={navLinkClass}>
+                  Food Donations
+                </NavLink>
+                <NavLink to="/my-claims" className={navLinkClass}>
+                  My Claims
+                </NavLink>
+              </>
+            )}
 
-            <a
-              href="/#for-shops"
-              className="px-4 py-2 rounded-xl text-sm font-semibold text-[#475569] hover:text-[#167C80] hover:bg-[#F1F5F9] transition"
-            >
-              For Shops
-            </a>
+            {/* Admin Specific Navigation */}
+            {user?.role === 'admin' && (
+              <>
+                <NavLink to="/admin/beneficiaries" className={navLinkClass}>
+                  Beneficiaries
+                </NavLink>
+                <NavLink to="/admin/donations" className={navLinkClass}>
+                  Donation Oversight
+                </NavLink>
+              </>
+            )}
 
+            {/* Customer Specific Navigation */}
             {user?.role === 'customer' && (
               <NavLink to="/my-reservations" className={navLinkClass}>
                 My Reservations
               </NavLink>
             )}
 
+            {/* Shop Owner Specific Navigation */}
             {user?.role === 'shop_owner' && (
-              <NavLink to="/shop/dashboard" className={navLinkClass}>
-                Shop Portal
-              </NavLink>
+              <>
+                <NavLink to="/shop/dashboard" className={navLinkClass}>
+                  Shop Portal
+                </NavLink>
+                <NavLink to="/shop/donations" className={navLinkClass}>
+                  Food Donations
+                </NavLink>
+              </>
+            )}
+
+            {(!user || user.role === 'customer') && (
+              <>
+                <a
+                  href="/#how-it-works"
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-[#475569] hover:text-[#167C80] hover:bg-[#F1F5F9] transition"
+                >
+                  How it Works
+                </a>
+
+                <a
+                  href="/#for-shops"
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-[#475569] hover:text-[#167C80] hover:bg-[#F1F5F9] transition"
+                >
+                  For Shops
+                </a>
+              </>
             )}
           </nav>
 
@@ -114,6 +166,10 @@ export const Navbar: React.FC = () => {
                     <div className="w-8 h-8 rounded-full bg-[#167C80] text-white flex items-center justify-center font-bold text-xs shadow-xs">
                       {user.role === 'shop_owner' ? (
                         <Store className="w-4 h-4" />
+                      ) : user.role === 'admin' ? (
+                        <ShieldCheck className="w-4 h-4" />
+                      ) : user.role === 'beneficiary' ? (
+                        <HeartHandshake className="w-4 h-4" />
                       ) : (
                         <User className="w-4 h-4" />
                       )}
@@ -125,10 +181,14 @@ export const Navbar: React.FC = () => {
                           : user.full_name}
                       </div>
                       <div className="text-[11px] font-medium text-[#64748B] mt-0.5">
-                        {user.role === 'shop_owner' ? 'Shop Owner' : 'Customer'}
+                        {getRoleBadge()}
                       </div>
                     </div>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 transition-transform ${
+                        profileOpen ? 'rotate-180' : ''
+                      }`}
+                    />
                   </button>
 
                   {/* Profile Dropdown Menu */}
@@ -140,9 +200,12 @@ export const Navbar: React.FC = () => {
                       <div className="px-4 py-2 border-b border-[#F1F5F9]">
                         <p className="text-xs text-slate-400">Signed in as</p>
                         <p className="text-sm font-bold text-[#0F172A] truncate">{user.full_name}</p>
+                        <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#DFF2F0] text-[#167C80] mt-1">
+                          {getRoleBadge()}
+                        </span>
                       </div>
 
-                      {user.role === 'customer' ? (
+                      {user.role === 'customer' && (
                         <Link
                           to="/my-reservations"
                           onClick={() => setProfileOpen(false)}
@@ -151,7 +214,59 @@ export const Navbar: React.FC = () => {
                           <ClipboardList className="w-4 h-4" />
                           <span>My Reservations</span>
                         </Link>
-                      ) : (
+                      )}
+
+                      {user.role === 'beneficiary' && (
+                        <>
+                          <Link
+                            to="/donations"
+                            onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#475569] hover:bg-[#DFF2F0] hover:text-[#167C80] transition"
+                          >
+                            <Gift className="w-4 h-4" />
+                            <span>Browse Donations</span>
+                          </Link>
+                          <Link
+                            to="/my-claims"
+                            onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#475569] hover:bg-[#DFF2F0] hover:text-[#167C80] transition"
+                          >
+                            <HeartHandshake className="w-4 h-4" />
+                            <span>My Claims</span>
+                          </Link>
+                          <Link
+                            to="/beneficiary/status"
+                            onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#475569] hover:bg-[#DFF2F0] hover:text-[#167C80] transition"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>Application Status</span>
+                          </Link>
+                        </>
+                      )}
+
+                      {user.role === 'admin' && (
+                        <>
+                          <Link
+                            to="/admin/beneficiaries"
+                            onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#475569] hover:bg-[#DFF2F0] hover:text-[#167C80] transition"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>Beneficiaries</span>
+                          </Link>
+                          <Link
+                            to="/admin/donations"
+                            onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#475569] hover:bg-[#DFF2F0] hover:text-[#167C80] transition"
+                          >
+                            <LayoutDashboard className="w-4 h-4" />
+                            <span>Donation Oversight</span>
+                          </Link>
+                        </>
+                      )}
+
+                      {user.role === 'shop_owner' && (
                         <>
                           <Link
                             to="/shop/dashboard"
@@ -160,6 +275,14 @@ export const Navbar: React.FC = () => {
                           >
                             <LayoutDashboard className="w-4 h-4" />
                             <span>Shop Dashboard</span>
+                          </Link>
+                          <Link
+                            to="/shop/donations"
+                            onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#475569] hover:bg-[#DFF2F0] hover:text-[#167C80] transition"
+                          >
+                            <HeartHandshake className="w-4 h-4" />
+                            <span>Food Donations</span>
                           </Link>
                           <Link
                             to="/shop/profile"
@@ -235,24 +358,50 @@ export const Navbar: React.FC = () => {
             className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#DFF2F0] hover:text-[#167C80]"
           >
             <ShoppingBag className="w-4 h-4 text-[#167C80]" />
-            <span>Browse Food Offers</span>
+            <span>Browse Offers</span>
           </Link>
 
-          <a
-            href="/#how-it-works"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#F1F5F9]"
-          >
-            <span>How it Works</span>
-          </a>
+          {user?.role === 'beneficiary' && (
+            <>
+              <Link
+                to="/donations"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#DFF2F0] hover:text-[#167C80]"
+              >
+                <Gift className="w-4 h-4 text-[#167C80]" />
+                <span>Food Donations</span>
+              </Link>
+              <Link
+                to="/my-claims"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#DFF2F0] hover:text-[#167C80]"
+              >
+                <HeartHandshake className="w-4 h-4 text-[#167C80]" />
+                <span>My Claims</span>
+              </Link>
+            </>
+          )}
 
-          <a
-            href="/#for-shops"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#F1F5F9]"
-          >
-            <span>For Shops</span>
-          </a>
+          {user?.role === 'admin' && (
+            <>
+              <Link
+                to="/admin/beneficiaries"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#DFF2F0] hover:text-[#167C80]"
+              >
+                <ShieldCheck className="w-4 h-4 text-[#167C80]" />
+                <span>Beneficiaries</span>
+              </Link>
+              <Link
+                to="/admin/donations"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#DFF2F0] hover:text-[#167C80]"
+              >
+                <LayoutDashboard className="w-4 h-4 text-[#167C80]" />
+                <span>Donation Oversight</span>
+              </Link>
+            </>
+          )}
 
           {user?.role === 'customer' && (
             <Link
@@ -266,14 +415,24 @@ export const Navbar: React.FC = () => {
           )}
 
           {user?.role === 'shop_owner' && (
-            <Link
-              to="/shop/dashboard"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#DFF2F0] hover:text-[#167C80]"
-            >
-              <LayoutDashboard className="w-4 h-4 text-[#167C80]" />
-              <span>Shop Dashboard</span>
-            </Link>
+            <>
+              <Link
+                to="/shop/dashboard"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#DFF2F0] hover:text-[#167C80]"
+              >
+                <LayoutDashboard className="w-4 h-4 text-[#167C80]" />
+                <span>Shop Dashboard</span>
+              </Link>
+              <Link
+                to="/shop/donations"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#DFF2F0] hover:text-[#167C80]"
+              >
+                <HeartHandshake className="w-4 h-4 text-[#167C80]" />
+                <span>Food Donations</span>
+              </Link>
+            </>
           )}
 
           <div className="pt-3 border-t border-[#E2E8F0]">
@@ -281,7 +440,7 @@ export const Navbar: React.FC = () => {
               <div className="space-y-2.5">
                 <div className="px-3 py-1.5 text-xs text-[#64748B]">
                   Signed in as <strong className="text-[#0F172A]">{user.full_name}</strong> (
-                  {user.role === 'shop_owner' ? 'Shop Owner' : 'Customer'})
+                  {getRoleBadge()})
                 </div>
                 <button
                   type="button"

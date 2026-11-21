@@ -45,15 +45,28 @@ func AuthRequired(jwtSecret string) gin.HandlerFunc {
 
 // RequireRole enforces role-based access control (RBAC) for protected endpoints.
 func RequireRole(allowedRole string) gin.HandlerFunc {
+	return RequireRoles(allowedRole)
+}
+
+// RequireRoles enforces that the user's role matches one of the allowed roles.
+func RequireRoles(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		roleVal, exists := c.Get(ContextRoleKey)
-		if !exists || roleVal != allowedRole {
+		if !exists {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"error": "You do not have permission to access this resource.",
 			})
 			return
 		}
-		c.Next()
+		roleStr, _ := roleVal.(string)
+		for _, r := range allowedRoles {
+			if roleStr == r {
+				c.Next()
+				return
+			}
+		}
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error": "You do not have permission to access this resource.",
+		})
 	}
 }
-

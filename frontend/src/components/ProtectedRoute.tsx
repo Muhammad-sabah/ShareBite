@@ -6,9 +6,14 @@ import { UserRole } from '../types';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: UserRole;
+  allowedRoles?: UserRole[];
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  requiredRole,
+  allowedRoles,
+}) => {
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
@@ -24,14 +29,42 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
   }
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location.pathname, role: requiredRole }} replace />;
+    return (
+      <Navigate
+        to="/login"
+        state={{ from: location.pathname, role: requiredRole || (allowedRoles && allowedRoles[0]) }}
+        replace
+      />
+    );
   }
 
-  if (requiredRole && user.role !== requiredRole) {
-    const fallback = user.role === 'shop_owner' ? '/shop/dashboard' : '/marketplace';
+  // Determine authorized roles
+  const effectiveRoles: UserRole[] = allowedRoles
+    ? allowedRoles
+    : requiredRole
+    ? [requiredRole]
+    : [];
+
+  if (effectiveRoles.length > 0 && !effectiveRoles.includes(user.role)) {
+    let fallback = '/marketplace';
+    if (user.role === 'shop_owner') {
+      fallback = '/shop/dashboard';
+    } else if (user.role === 'admin') {
+      fallback = '/admin/beneficiaries';
+    } else if (user.role === 'beneficiary') {
+      fallback = user.beneficiary?.verification_status === 'Approved' ? '/donations' : '/beneficiary/status';
+    }
     return <Navigate to={fallback} replace />;
+  }
+
+  // Beneficiary verification check:
+  // If user is beneficiary, and accessing donation/claims pages, they must be Approved.
+  // If they are not approved and not already on /beneficiary/status, redirect to /beneficiary/status.
+  if (user.role === 'beneficiary' && location.pathname !== '/beneficiary/status') {
+    if (user.beneficiary && user.beneficiary.verification_status !== 'Approved') {
+      return <Navigate to="/beneficiary/status" replace />;
+    }
   }
 
   return <>{children}</>;
 };
-

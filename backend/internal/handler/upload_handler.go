@@ -85,4 +85,3 @@ func (h *UploadHandler) UploadFoodImage(c *gin.Context) {
 		"image_url": "/uploads/" + filename,
 	})
 }
-

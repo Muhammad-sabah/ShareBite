@@ -4,6 +4,7 @@ import { Calendar, ClipboardList, MapPin, Store, Eye, XCircle, Banknote, X } fro
 import { customerApi, parseApiError } from '../../services/api';
 import { Reservation } from '../../types';
 import { formatIQD, formatPickupDateLabel, computeCountdown } from '../../utils/format';
+import { resolveImageUrl } from '../../utils/imageUrl';
 import { StatusBadge } from '../../components/Badges';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { EmptyState } from '../../components/EmptyState';
@@ -22,7 +23,7 @@ export const MyReservationsPage: React.FC = () => {
     setLoading(true);
     try {
       const list = await customerApi.listReservations();
-      setReservations(list);
+      setReservations(Array.isArray(list) ? list : []);
     } catch (err) {
       showToast('error', parseApiError(err, 'Failed to load your reservations.').message);
     } finally {
@@ -89,7 +90,7 @@ export const MyReservationsPage: React.FC = () => {
             <div key={i} className="bg-white rounded-2xl border border-[#E2E8F0] p-6 animate-pulse h-36" />
           ))}
         </div>
-      ) : reservations.length === 0 ? (
+      ) : (reservations || []).length === 0 ? (
         <EmptyState
           icon={<ClipboardList className="w-7 h-7" />}
           title="No reservations yet"
@@ -105,7 +106,7 @@ export const MyReservationsPage: React.FC = () => {
         />
       ) : (
         <div className="space-y-4">
-          {reservations.map((res) => {
+          {(reservations || []).map((res) => {
             const cancellable = canCancel(res);
             return (
               <div
@@ -113,7 +114,7 @@ export const MyReservationsPage: React.FC = () => {
                 className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs hover:shadow-md transition flex flex-col sm:flex-row gap-5"
               >
                 <img
-                  src={res.offer_image_url || '/images/food/other-default.svg'}
+                  src={resolveImageUrl(res.offer_image_url)}
                   alt={res.food_name}
                   className="w-full sm:w-32 h-32 sm:h-28 rounded-xl object-cover bg-slate-50 border border-[#E2E8F0] shrink-0"
                 />

@@ -104,4 +104,3 @@ func (h *OfferHandler) DeactivateOffer(c *gin.Context) {
 		"message": "Offer has been permanently deactivated.",
 	})
 }
-

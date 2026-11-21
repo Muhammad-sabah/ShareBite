@@ -28,7 +28,7 @@ export const ShopDashboardPage: React.FC = () => {
       .then(([dash, resList]) => {
         if (!active) return;
         setStats(dash);
-        setRecentReservations(resList.slice(0, 5));
+        setRecentReservations(Array.isArray(resList) ? resList.slice(0, 5) : []);
       })
       .catch((err) => {
         if (active) showToast('error', parseApiError(err, 'Failed to load dashboard.').message);
@@ -197,13 +197,13 @@ export const ShopDashboardPage: React.FC = () => {
           </Link>
         </div>
 
-        {recentReservations.length === 0 ? (
+        {(recentReservations || []).length === 0 ? (
           <div className="p-8 text-center text-sm text-[#64748B]">
             No pending active pickups right now.
           </div>
         ) : (
           <div className="divide-y divide-[#F1F5F9]">
-            {recentReservations.map((res) => (
+            {(recentReservations || []).map((res) => (
               <div
                 key={res.id}
                 className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#F8FAF9] transition"

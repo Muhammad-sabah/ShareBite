@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
-import { CheckCircle2, AlertCircle, AlertTriangle, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 
-export type ToastType = 'success' | 'error' | 'warning';
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 interface ToastItem {
   id: number;
@@ -26,7 +26,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     (type: ToastType, message: string) => {
       const id = Date.now() + Math.floor(Math.random() * 1000);
       setToasts((prev) => [...prev.slice(-3), { id, type, message }]);
-      if (type === 'success' || type === 'warning') {
+      if (type === 'success' || type === 'warning' || type === 'info') {
         setTimeout(() => dismiss(id), 4500);
       }
     },
@@ -44,12 +44,20 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const styles =
             t.type === 'success'
               ? 'bg-[#DFF2F0] border-[#167C80] text-[#105B60]'
+              : t.type === 'info'
+              ? 'bg-[#DFF2F0] border-[#55AAA5] text-[#167C80]'
               : t.type === 'warning'
               ? 'bg-[#FFF3E0] border-[#F57C00] text-[#E65100]'
               : 'bg-rose-50 border-rose-300 text-rose-800';
 
           const Icon =
-            t.type === 'success' ? CheckCircle2 : t.type === 'warning' ? AlertTriangle : AlertCircle;
+            t.type === 'success'
+              ? CheckCircle2
+              : t.type === 'info'
+              ? Info
+              : t.type === 'warning'
+              ? AlertTriangle
+              : AlertCircle;
 
           return (
             <div
@@ -81,4 +89,3 @@ export function useToast(): ToastContextValue {
   }
   return ctx;
 }
-

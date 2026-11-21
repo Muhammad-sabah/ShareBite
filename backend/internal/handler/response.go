@@ -45,4 +45,3 @@ func currentUserID(c *gin.Context) uint64 {
 	id, _ := val.(uint64)
 	return id
 }
-

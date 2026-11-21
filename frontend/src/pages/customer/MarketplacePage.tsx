@@ -33,7 +33,7 @@ export const MarketplacePage: React.FC = () => {
         category: selectedCategory !== 'All' ? selectedCategory : undefined,
         sort: sortBy,
       });
-      setOffers(list);
+      setOffers(Array.isArray(list) ? list : []);
     } catch (err) {
       showToast('error', parseApiError(err, 'Failed to load food offers.').message);
     } finally {
@@ -68,7 +68,7 @@ export const MarketplacePage: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <span className="text-xs sm:text-sm font-semibold text-[#475569] bg-white px-3.5 py-2 rounded-xl border border-[#E2E8F0] shadow-2xs">
-            {loading ? 'Loading...' : `${offers.length} offer${offers.length === 1 ? '' : 's'} available`}
+            {loading ? 'Loading...' : `${(offers || []).length} offer${(offers || []).length === 1 ? '' : 's'} available`}
           </span>
           <button
             type="button"
@@ -136,7 +136,7 @@ export const MarketplacePage: React.FC = () => {
       {/* Results Grid */}
       {loading ? (
         <OfferGridSkeleton count={6} />
-      ) : offers.length === 0 ? (
+      ) : (offers || []).length === 0 ? (
         <EmptyState
           title="No food offers found"
           description={
@@ -161,7 +161,7 @@ export const MarketplacePage: React.FC = () => {
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {offers.map((offer) => (
+          {(offers || []).map((offer) => (
             <OfferCard key={offer.id} offer={offer} readOnlyRole={user?.role === 'shop_owner'} />
           ))}
         </div>

@@ -18,6 +18,7 @@ import { useCountdown } from '../../hooks/useCountdown';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { CategoryBadge, DiscountBadge, StatusBadge } from '../../components/Badges';
+import { resolveImageUrl } from '../../utils/imageUrl';
 import { CountdownBadge } from '../../components/CountdownBadge';
 
 export const OfferDetailPage: React.FC = () => {
@@ -166,7 +167,7 @@ export const OfferDetailPage: React.FC = () => {
             <div>
               <div className="relative aspect-[16/11] rounded-2xl overflow-hidden bg-white border border-[#E2E8F0] mb-5 shadow-2xs">
                 <img
-                  src={offer.image_url || '/images/food/other-default.svg'}
+                  src={resolveImageUrl(offer.image_url)}
                   alt={offer.food_name}
                   className="w-full h-full object-cover"
                 />

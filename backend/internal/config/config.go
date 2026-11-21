@@ -10,7 +10,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Config holds all environment-driven configuration for the Baqaya backend.
+// Config holds all environment-driven configuration for the ShareBite backend.
 type Config struct {
 	AppEnv             string
 	ServerPort         string
@@ -29,6 +29,15 @@ type Config struct {
 	JWTExpiryHours int
 	SeedDemoData   bool
 	UploadDir      string
+
+	// Provisioning configuration for Admin & Demo accounts
+	AdminUsername string
+	AdminPassword string
+	AdminFullName string
+
+	DemoBeneficiaryUsername string
+	DemoBeneficiaryPassword string
+	DemoBeneficiaryFullName string
 }
 
 // Load reads configuration from .env (if present) and process environment variables.
@@ -70,22 +79,36 @@ func Load() (*Config, error) {
 		jwtSecret = "baqaya-dev-fallback-secret-set-JWT_SECRET-in-env"
 	}
 
+	adminUser := getEnv("ADMIN_USERNAME", "admin")
+	adminPass := getEnv("ADMIN_PASSWORD", "Admin@ShareBite2026")
+	adminName := getEnv("ADMIN_FULL_NAME", "ShareBite System Admin")
+
+	demoBenUser := getEnv("DEMO_BENEFICIARY_USERNAME", "beneficiary1")
+	demoBenPass := getEnv("DEMO_BENEFICIARY_PASSWORD", "pass123")
+	demoBenName := getEnv("DEMO_BENEFICIARY_FULL_NAME", "Dara Othman (Demo Family)")
+
 	return &Config{
-		AppEnv:             appEnv,
-		ServerPort:         getEnv("PORT", getEnv("SERVER_PORT", "8080")),
-		Timezone:           tz,
-		Location:           loc,
-		CORSAllowedOrigins: origins,
-		DBHost:             getEnv("DB_HOST", "127.0.0.1"),
-		DBPort:             getEnv("DB_PORT", "3306"),
-		DBUser:             getEnv("DB_USER", "root"),
-		DBPassword:         os.Getenv("DB_PASSWORD"),
-		DBName:             getEnv("DB_NAME", "baqaya"),
-		DBTLS:              dbTLS,
-		JWTSecret:          jwtSecret,
-		JWTExpiryHours:     expiryHours,
-		SeedDemoData:       seedDemo,
-		UploadDir:          getEnv("UPLOAD_DIR", "uploads"),
+		AppEnv:                  appEnv,
+		ServerPort:              getEnv("PORT", getEnv("SERVER_PORT", "8080")),
+		Timezone:                tz,
+		Location:                loc,
+		CORSAllowedOrigins:      origins,
+		DBHost:                  getEnv("DB_HOST", "127.0.0.1"),
+		DBPort:                  getEnv("DB_PORT", "3306"),
+		DBUser:                  getEnv("DB_USER", "root"),
+		DBPassword:              os.Getenv("DB_PASSWORD"),
+		DBName:                  getEnv("DB_NAME", "baqaya"),
+		DBTLS:                   dbTLS,
+		JWTSecret:               jwtSecret,
+		JWTExpiryHours:          expiryHours,
+		SeedDemoData:            seedDemo,
+		UploadDir:               getEnv("UPLOAD_DIR", "uploads"),
+		AdminUsername:           adminUser,
+		AdminPassword:           adminPass,
+		AdminFullName:           adminName,
+		DemoBeneficiaryUsername: demoBenUser,
+		DemoBeneficiaryPassword: demoBenPass,
+		DemoBeneficiaryFullName: demoBenName,
 	}, nil
 }
 
@@ -111,4 +134,3 @@ func getEnv(key, fallback string) string {
 	}
 	return fallback
 }
-

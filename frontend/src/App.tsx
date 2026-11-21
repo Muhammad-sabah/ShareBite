@@ -9,6 +9,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
+import { BeneficiaryRegisterPage } from './pages/auth/BeneficiaryRegisterPage';
 import { MarketplacePage } from './pages/customer/MarketplacePage';
 import { OfferDetailPage } from './pages/customer/OfferDetailPage';
 import { ReservationConfirmationPage } from './pages/customer/ReservationConfirmationPage';
@@ -20,6 +21,16 @@ import { MyOffersPage } from './pages/shop/MyOffersPage';
 import { ShopOfferDetailPage } from './pages/shop/ShopOfferDetailPage';
 import { ShopReservationsPage } from './pages/shop/ShopReservationsPage';
 import { BusinessProfilePage } from './pages/shop/BusinessProfilePage';
+import { ShopDonationsPage } from './pages/shop/ShopDonationsPage';
+import { CreateDonationPage } from './pages/shop/CreateDonationPage';
+
+import { BeneficiaryStatusPage } from './pages/beneficiary/BeneficiaryStatusPage';
+import { DonationsPage } from './pages/beneficiary/DonationsPage';
+import { DonationDetailPage } from './pages/beneficiary/DonationDetailPage';
+import { MyClaimsPage } from './pages/beneficiary/MyClaimsPage';
+
+import { AdminBeneficiariesPage } from './pages/admin/AdminBeneficiariesPage';
+import { AdminDonationsPage } from './pages/admin/AdminDonationsPage';
 
 export const App: React.FC = () => {
   return (
@@ -27,7 +38,7 @@ export const App: React.FC = () => {
       <ToastProvider>
         <AuthProvider>
           <Routes>
-            {/* Public & Customer Routes */}
+            {/* Public & Customer Commercial Routes */}
             <Route
               path="/"
               element={
@@ -49,6 +60,14 @@ export const App: React.FC = () => {
               element={
                 <PublicLayout>
                   <RegisterPage />
+                </PublicLayout>
+              }
+            />
+            <Route
+              path="/register/beneficiary"
+              element={
+                <PublicLayout>
+                  <BeneficiaryRegisterPage />
                 </PublicLayout>
               }
             />
@@ -86,6 +105,48 @@ export const App: React.FC = () => {
                 <ProtectedRoute requiredRole="customer">
                   <PublicLayout>
                     <ReservationConfirmationPage />
+                  </PublicLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Beneficiary Protected Routes */}
+            <Route
+              path="/beneficiary/status"
+              element={
+                <ProtectedRoute requiredRole="beneficiary">
+                  <PublicLayout>
+                    <BeneficiaryStatusPage />
+                  </PublicLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/donations"
+              element={
+                <ProtectedRoute requiredRole="beneficiary">
+                  <PublicLayout>
+                    <DonationsPage />
+                  </PublicLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/donations/:id"
+              element={
+                <ProtectedRoute requiredRole="beneficiary">
+                  <PublicLayout>
+                    <DonationDetailPage />
+                  </PublicLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-claims"
+              element={
+                <ProtectedRoute requiredRole="beneficiary">
+                  <PublicLayout>
+                    <MyClaimsPage />
                   </PublicLayout>
                 </ProtectedRoute>
               }
@@ -143,12 +204,54 @@ export const App: React.FC = () => {
               }
             />
             <Route
+              path="/shop/donations"
+              element={
+                <ProtectedRoute requiredRole="shop_owner">
+                  <ShopLayout>
+                    <ShopDonationsPage />
+                  </ShopLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/shop/donations/new"
+              element={
+                <ProtectedRoute requiredRole="shop_owner">
+                  <ShopLayout>
+                    <CreateDonationPage />
+                  </ShopLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/shop/profile"
               element={
                 <ProtectedRoute requiredRole="shop_owner">
                   <ShopLayout>
                     <BusinessProfilePage />
                   </ShopLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Protected Routes */}
+            <Route
+              path="/admin/beneficiaries"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <PublicLayout>
+                    <AdminBeneficiariesPage />
+                  </PublicLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/donations"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <PublicLayout>
+                    <AdminDonationsPage />
+                  </PublicLayout>
                 </ProtectedRoute>
               }
             />
@@ -163,4 +266,3 @@ export const App: React.FC = () => {
 };
 
 export default App;
-

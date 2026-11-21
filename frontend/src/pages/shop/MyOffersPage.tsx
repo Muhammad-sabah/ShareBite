@@ -4,6 +4,7 @@ import { Ban, Calendar, Eye, Package, PlusCircle } from 'lucide-react';
 import { shopApi, parseApiError } from '../../services/api';
 import { Offer } from '../../types';
 import { formatIQD, formatPickupDateLabel } from '../../utils/format';
+import { resolveImageUrl } from '../../utils/imageUrl';
 import { CategoryBadge, DiscountBadge, StatusBadge } from '../../components/Badges';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { EmptyState } from '../../components/EmptyState';
@@ -23,7 +24,7 @@ export const MyOffersPage: React.FC = () => {
     setLoading(true);
     try {
       const list = await shopApi.listOffers(statusFilter);
-      setOffers(list);
+      setOffers(Array.isArray(list) ? list : []);
     } catch (err) {
       showToast('error', parseApiError(err, 'Failed to load offers.').message);
     } finally {
@@ -98,7 +99,7 @@ export const MyOffersPage: React.FC = () => {
             <div key={i} className="h-32 bg-white rounded-2xl border border-[#E2E8F0] animate-pulse" />
           ))}
         </div>
-      ) : offers.length === 0 ? (
+      ) : (offers || []).length === 0 ? (
         <EmptyState
           icon={<Package className="w-7 h-7" />}
           title={statusFilter === 'All' ? 'No offers created yet' : `No ${statusFilter} offers`}
@@ -121,7 +122,7 @@ export const MyOffersPage: React.FC = () => {
         />
       ) : (
         <div className="space-y-4">
-          {offers.map((offer) => {
+          {(offers || []).map((offer) => {
             const canDeactivate = offer.status === 'Active' || offer.status === 'Sold Out';
             const activeCount = offer.active_reservation_count ?? 0;
 
@@ -131,7 +132,7 @@ export const MyOffersPage: React.FC = () => {
                 className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs hover:shadow-sm transition flex flex-col md:flex-row gap-5"
               >
                 <img
-                  src={offer.image_url || '/images/food/other-default.svg'}
+                  src={resolveImageUrl(offer.image_url)}
                   alt={offer.food_name}
                   className="w-full md:w-36 h-36 md:h-28 rounded-xl object-cover bg-slate-50 border border-[#E2E8F0] shrink-0"
                 />

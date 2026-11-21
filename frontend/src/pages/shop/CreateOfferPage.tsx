@@ -4,6 +4,7 @@ import { ImagePlus, MapPin, Store, Upload } from 'lucide-react';
 import { shopApi, parseApiError } from '../../services/api';
 import { FOOD_CATEGORIES, FoodCategory } from '../../types';
 import { formatIQD, PRESET_FOOD_IMAGES, todayDateInputValue } from '../../utils/format';
+import { resolveImageUrl } from '../../utils/imageUrl';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
@@ -362,7 +363,7 @@ export const CreateOfferPage: React.FC = () => {
           <div className="text-xs font-bold uppercase tracking-wider text-[#64748B]">Live Marketplace Preview</div>
           <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden shadow-xs">
             <div className="relative aspect-[16/10] bg-slate-100">
-              <img src={imageUrl} alt="Offer preview" className="w-full h-full object-cover" />
+              <img src={resolveImageUrl(imageUrl)} alt="Offer preview" className="w-full h-full object-cover" />
               <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#DFF2F0] text-[#167C80] border border-[#55AAA5]/20">
                 {category}
               </span>

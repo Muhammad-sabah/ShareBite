@@ -154,4 +154,3 @@ func CalculateDiscountPercent(originalPrice, discountedPrice uint) int {
 	diff := float64(originalPrice - discountedPrice)
 	return int((diff/float64(originalPrice))*100 + 0.5)
 }
-

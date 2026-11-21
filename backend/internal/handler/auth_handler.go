@@ -46,6 +46,21 @@ func (h *AuthHandler) RegisterShopOwner(c *gin.Context) {
 	c.JSON(http.StatusCreated, res)
 }
 
+func (h *AuthHandler) RegisterBeneficiary(c *gin.Context) {
+	var req dto.BeneficiaryRegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload."})
+		return
+	}
+
+	res, err := h.authSvc.RegisterBeneficiary(req)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusCreated, res)
+}
+
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -84,4 +99,3 @@ func (h *AuthHandler) UpdateShopProfile(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"shop": shop})
 }
-

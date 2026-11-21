@@ -85,7 +85,7 @@ func (s *AuthService) RegisterShopOwner(req dto.ShopOwnerRegisterRequest) (*dto.
 	if err != nil {
 		return nil, toAppError(http.StatusBadRequest, err)
 	}
-	contact, err := util.ValidatePhone(req.ContactNumber, "contact_number", "Shop contact number")
+	contact, err := util.ValidatePhone(req.ContactNumber, "contact_number", "Contact number")
 	if err != nil {
 		return nil, toAppError(http.StatusBadRequest, err)
 	}
@@ -112,7 +112,7 @@ func (s *AuthService) RegisterShopOwner(req dto.ShopOwnerRegisterRequest) (*dto.
 		return nil, err
 	}
 	if shopExists {
-		return nil, &AppError{Code: http.StatusConflict, Field: "shop_name", Message: "That shop name is already registered."}
+		return nil, &AppError{Code: http.StatusConflict, Field: "shop_name", Message: "A shop with that name is already registered."}
 	}
 
 	hash, err := util.HashPassword(req.Password)
@@ -148,9 +148,87 @@ func (s *AuthService) RegisterShopOwner(req dto.ShopOwnerRegisterRequest) (*dto.
 	}, nil
 }
 
+func (s *AuthService) RegisterBeneficiary(req dto.BeneficiaryRegisterRequest) (*dto.AuthResponse, error) {
+	fullName, err := util.ValidatePersonName(req.FullName, "full_name", "Full name")
+	if err != nil {
+		return nil, toAppError(http.StatusBadRequest, err)
+	}
+	phone, err := util.ValidatePhone(req.PhoneNumber, "phone_number", "Phone number")
+	if err != nil {
+		return nil, toAppError(http.StatusBadRequest, err)
+	}
+	username, err := util.ValidateUsername(req.Username)
+	if err != nil {
+		return nil, toAppError(http.StatusBadRequest, err)
+	}
+	if err := util.ValidatePassword(req.Password); err != nil {
+		return nil, toAppError(http.StatusBadRequest, err)
+	}
+	address, err := util.ValidateRequired(req.Address, "address", "Address / Location")
+	if err != nil {
+		return nil, toAppError(http.StatusBadRequest, err)
+	}
+
+	bType := strings.TrimSpace(req.BeneficiaryType)
+	if bType == "" {
+		bType = "Individual"
+	}
+
+	familyMembers := req.FamilyMembers
+	if familyMembers <= 0 {
+		familyMembers = 1
+	}
+
+	if existing, err := s.repo.FindUserByRoleAndUsername(models.RoleBeneficiary, username); err == nil && existing != nil {
+		return nil, &AppError{Code: http.StatusConflict, Field: "username", Message: "That beneficiary username already exists."}
+	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	hash, err := util.HashPassword(req.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	user := &models.User{
+		Role:         models.RoleBeneficiary,
+		Username:     username,
+		PasswordHash: hash,
+		FullName:     fullName,
+		PhoneNumber:  phone,
+	}
+
+	profile := &models.BeneficiaryProfile{
+		BeneficiaryType:    bType,
+		OrganizationName:   strings.TrimSpace(req.OrganizationName),
+		FamilyMembers:      uint(familyMembers),
+		Address:            address,
+		IDDocumentNumber:   strings.TrimSpace(req.IDDocumentNumber),
+		VerificationStatus: models.BeneficiaryStatusPending,
+		Source:             "Direct Application",
+		Notes:              strings.TrimSpace(req.Notes),
+	}
+
+	if err := s.repo.CreateBeneficiaryWithProfile(user, profile); err != nil {
+		return nil, err
+	}
+
+	user.BeneficiaryProfile = profile
+
+	token, err := util.GenerateToken(s.cfg.JWTSecret, s.cfg.JWTExpiryHours, user.ID, user.Username, user.Role, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.AuthResponse{
+		Token: token,
+		User:  mapUserProfile(user),
+	}, nil
+}
+
 func (s *AuthService) Login(req dto.LoginRequest) (*dto.AuthResponse, error) {
 	role := strings.TrimSpace(req.Role)
-	if role != models.RoleCustomer && role != models.RoleShopOwner {
+	if role != models.RoleCustomer && role != models.RoleShopOwner && role != models.RoleAdmin && role != models.RoleBeneficiary {
 		return nil, &AppError{Code: http.StatusBadRequest, Field: "role", Message: "Please select a valid account role."}
 	}
 
@@ -162,7 +240,6 @@ func (s *AuthService) Login(req dto.LoginRequest) (*dto.AuthResponse, error) {
 	user, err := s.repo.FindUserByRoleAndUsername(role, username)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// FR-AUTH-03: Uniform message without revealing whether username or password was incorrect
 			return nil, &AppError{Code: http.StatusUnauthorized, Message: "Invalid username or password."}
 		}
 		return nil, err
@@ -201,21 +278,21 @@ func (s *AuthService) GetProfile(userID uint64) (*dto.UserProfileResponse, error
 }
 
 func (s *AuthService) UpdateShopProfile(ownerID uint64, req dto.UpdateShopProfileRequest) (*dto.ShopProfileResponse, error) {
-	contact, err := util.ValidatePhone(req.ContactNumber, "contact_number", "Shop contact number")
-	if err != nil {
-		return nil, toAppError(http.StatusBadRequest, err)
-	}
-	address, err := util.ValidateRequired(req.Address, "address", "Shop address")
-	if err != nil {
-		return nil, toAppError(http.StatusBadRequest, err)
-	}
-
 	shop, err := s.repo.FindShopByOwnerID(ownerID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
 		}
 		return nil, err
+	}
+
+	contact, err := util.ValidatePhone(req.ContactNumber, "contact_number", "Contact number")
+	if err != nil {
+		return nil, toAppError(http.StatusBadRequest, err)
+	}
+	address, err := util.ValidateRequired(req.Address, "address", "Shop address")
+	if err != nil {
+		return nil, toAppError(http.StatusBadRequest, err)
 	}
 
 	shop.ContactNumber = contact
@@ -242,7 +319,41 @@ func mapUserProfile(u *models.User) dto.UserProfileResponse {
 		sp := mapShopProfile(u.Shop)
 		res.Shop = &sp
 	}
+	if u.BeneficiaryProfile != nil {
+		bp := mapBeneficiaryProfile(u.BeneficiaryProfile)
+		res.Beneficiary = &bp
+	}
 	return res
+}
+
+func mapBeneficiaryProfile(b *models.BeneficiaryProfile) dto.BeneficiaryProfileResponse {
+	fullName := ""
+	phone := ""
+	username := ""
+	if b.User != nil {
+		fullName = b.User.FullName
+		phone = b.User.PhoneNumber
+		username = b.User.Username
+	}
+	return dto.BeneficiaryProfileResponse{
+		ID:                 b.ID,
+		UserID:             b.UserID,
+		FullName:           fullName,
+		PhoneNumber:        phone,
+		Username:           username,
+		BeneficiaryType:    b.BeneficiaryType,
+		OrganizationName:   b.OrganizationName,
+		FamilyMembers:      b.FamilyMembers,
+		Address:            b.Address,
+		IDDocumentNumber:   b.IDDocumentNumber,
+		VerificationStatus: b.VerificationStatus,
+		RejectionReason:    b.RejectionReason,
+		VerifiedBy:         b.VerifiedBy,
+		VerifiedAt:         b.VerifiedAt,
+		Source:             b.Source,
+		Notes:              b.Notes,
+		CreatedAt:          b.CreatedAt,
+	}
 }
 
 func mapShopProfile(s *models.Shop) dto.ShopProfileResponse {
@@ -263,4 +374,3 @@ func toAppError(code int, err error) error {
 	}
 	return &AppError{Code: code, Message: err.Error()}
 }
-

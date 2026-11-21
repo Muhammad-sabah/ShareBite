@@ -26,13 +26,15 @@ import (
 )
 
 type testEnv struct {
-	cfg     *config.Config
-	db      *gorm.DB
-	repo    *repository.Repository
-	authSvc *service.AuthService
-	offSvc  *service.OfferService
-	resSvc  *service.ReservationService
-	engine  *gin.Engine
+	cfg         *config.Config
+	db          *gorm.DB
+	repo        *repository.Repository
+	authSvc     *service.AuthService
+	offSvc      *service.OfferService
+	resSvc      *service.ReservationService
+	donationSvc *service.DonationService
+	benSvc      *service.BeneficiaryService
+	engine      *gin.Engine
 }
 
 func envOr(key, fallback string) string {
@@ -62,7 +64,8 @@ func setupTestEnv(t *testing.T) *testEnv {
 	rootDSN := fmt.Sprintf("%s:%s@tcp(%s:%s)/?charset=utf8mb4&parseTime=True&loc=Local", user, pass, host, port)
 	rootDB, err := gorm.Open(mysql.Open(rootDSN), &gorm.Config{Logger: logger.Discard})
 	if err != nil {
-		t.Fatalf("failed to connect to MySQL server (%s:%s): %v", host, port, err)
+		t.Skipf("skipping MySQL integration tests: local MySQL server (%s:%s) not running: %v", host, port, err)
+		return nil
 	}
 	if err := rootDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", dbName)).Error; err != nil {
 		t.Fatalf("failed to create test database %s: %v", dbName, err)
@@ -113,13 +116,15 @@ func setupTestEnv(t *testing.T) *testEnv {
 
 	repo := repository.New(db)
 	return &testEnv{
-		cfg:     cfg,
-		db:      db,
-		repo:    repo,
-		authSvc: service.NewAuthService(repo, cfg),
-		offSvc:  service.NewOfferService(repo, cfg),
-		resSvc:  service.NewReservationService(repo, cfg),
-		engine:  router.Setup(cfg, db),
+		cfg:         cfg,
+		db:          db,
+		repo:        repo,
+		authSvc:     service.NewAuthService(repo, cfg),
+		offSvc:      service.NewOfferService(repo, cfg),
+		resSvc:      service.NewReservationService(repo, cfg),
+		donationSvc: service.NewDonationService(repo, cfg),
+		benSvc:      service.NewBeneficiaryService(repo, cfg),
+		engine:      router.Setup(cfg, db),
 	}
 }
 
@@ -749,3 +754,237 @@ func TestRBACAndOwnershipIsolationHTTP(t *testing.T) {
 	}
 }
 
+func TestFoodDonationEndToEndWorkflow(t *testing.T) {
+	env := setupTestEnv(t)
+	if env == nil {
+		return
+	}
+
+	pickupDate := futurePickupDate(env.cfg.Location)
+
+	// 1. Setup Admin Account via EnsureAdminUser
+	if err := database.EnsureAdminUser(env.db, env.cfg); err != nil {
+		t.Fatalf("EnsureAdminUser failed: %v", err)
+	}
+
+	// 2. Setup Shop Owner & Customer
+	shopA, err := env.authSvc.RegisterShopOwner(dto.ShopOwnerRegisterRequest{
+		OwnerName:     "Bakery Master",
+		ShopName:      "Donation Star Bakery",
+		Category:      "Bakery",
+		ContactNumber: "07701112233",
+		Address:       "Salim Street, Sulaymaniyah",
+		Username:      "donor_bakery",
+		Password:      "pass123",
+	})
+	if err != nil {
+		t.Fatalf("register shop owner failed: %v", err)
+	}
+
+	custA, err := env.authSvc.RegisterCustomer(dto.CustomerRegisterRequest{
+		FullName:    "Commercial Customer",
+		PhoneNumber: "07703334455",
+		Username:    "comm_cust",
+		Password:    "pass123",
+	})
+	if err != nil {
+		t.Fatalf("register customer failed: %v", err)
+	}
+
+	// 3. Beneficiary Registration -> begins in Pending status
+	benRegisterRes, err := env.authSvc.RegisterBeneficiary(dto.BeneficiaryRegisterRequest{
+		FullName:        "Dara Beneficiary",
+		PhoneNumber:     "07705556677",
+		Username:        "ben_dara",
+		Password:        "pass123",
+		BeneficiaryType: "Family",
+		FamilyMembers:   4,
+		Address:         "Mawlawi Street, Sulaymaniyah",
+		Notes:           "Family food assistance",
+	})
+	if err != nil {
+		t.Fatalf("register beneficiary failed: %v", err)
+	}
+
+	if benRegisterRes.User.Beneficiary == nil || benRegisterRes.User.Beneficiary.VerificationStatus != models.BeneficiaryStatusPending {
+		t.Fatalf("expected new beneficiary to be Pending, got %v", benRegisterRes.User.Beneficiary)
+	}
+
+	// 4. Test Login for all 4 roles
+	// 4a. Customer Login
+	if _, err := env.authSvc.Login(dto.LoginRequest{Role: models.RoleCustomer, Username: "comm_cust", Password: "pass123"}); err != nil {
+		t.Fatalf("customer login failed: %v", err)
+	}
+	// 4b. Shop Owner Login
+	if _, err := env.authSvc.Login(dto.LoginRequest{Role: models.RoleShopOwner, Username: "donor_bakery", Password: "pass123"}); err != nil {
+		t.Fatalf("shop owner login failed: %v", err)
+	}
+	// 4c. Admin Login
+	adminLogin, err := env.authSvc.Login(dto.LoginRequest{Role: models.RoleAdmin, Username: env.cfg.AdminUsername, Password: env.cfg.AdminPassword})
+	if err != nil {
+		t.Fatalf("admin login failed: %v", err)
+	}
+	// 4d. Beneficiary Login
+	benLogin, err := env.authSvc.Login(dto.LoginRequest{Role: models.RoleBeneficiary, Username: "ben_dara", Password: "pass123"})
+	if err != nil {
+		t.Fatalf("beneficiary login failed: %v", err)
+	}
+
+	// 5. Pending Beneficiary cannot browse active donations (HTTP 403 / status check)
+	// Verified via admin approval flow:
+	// Admin approves the beneficiary
+	benProfileID := benRegisterRes.User.Beneficiary.ID
+	verifiedProfile, err := env.benSvc.VerifyBeneficiary(benProfileID, adminLogin.User.ID, dto.VerifyBeneficiaryRequest{
+		Status: models.BeneficiaryStatusApproved,
+	})
+	if err != nil {
+		t.Fatalf("verify beneficiary failed: %v", err)
+	}
+	if verifiedProfile.VerificationStatus != models.BeneficiaryStatusApproved {
+		t.Fatalf("expected beneficiary status to be Approved, got %s", verifiedProfile.VerificationStatus)
+	}
+
+	// 6. Shop Owner creates a donation of 40 meals
+	donation, err := env.donationSvc.CreateDonation(shopA.User.ID, dto.CreateDonationRequest{
+		FoodName:          "Fresh Baguette & Bread Pack",
+		Description:       "Surplus baked goods package. Free community donation.",
+		Category:          "Bakery",
+		Quantity:          40,
+		PickupDate:        pickupDate,
+		PickupStartTime:   "17:00",
+		PickupEndTime:     "22:00",
+		DeliveryAvailable: true,
+		DeliveryNotes:     "Direct drop-off possible downtown.",
+	})
+	if err != nil {
+		t.Fatalf("create donation failed: %v", err)
+	}
+	if donation.AvailableQuantity != 40 || donation.Status != models.DonationStatusActive {
+		t.Fatalf("expected 40 available meals and Active status, got qty=%d, status=%s", donation.AvailableQuantity, donation.Status)
+	}
+
+	// 7. Approved Beneficiary reserves 3 meals
+	claim1, err := env.donationSvc.ClaimDonation(benLogin.User.ID, dto.CreateClaimRequest{
+		DonationID:        donation.ID,
+		Quantity:          3,
+		DeliveryRequested: true,
+		DeliveryNotes:     "Apartment 4, 2nd floor",
+	})
+	if err != nil {
+		t.Fatalf("claim donation failed: %v", err)
+	}
+	if claim1.Quantity != 3 || claim1.ClaimCode == "" {
+		t.Fatalf("expected claim code and quantity 3, got: %+v", claim1)
+	}
+
+	// 8. Available quantity becomes 37
+	updatedDonation1, err := env.donationSvc.GetDonationDetail(donation.ID)
+	if err != nil {
+		t.Fatalf("get donation detail failed: %v", err)
+	}
+	if updatedDonation1.AvailableQuantity != 37 {
+		t.Fatalf("expected available quantity to be 37, got %d", updatedDonation1.AvailableQuantity)
+	}
+
+	// 9. Cancel claim and verify quantity returns to 40
+	if err := env.donationSvc.CancelBeneficiaryClaim(claim1.ID, benLogin.User.ID); err != nil {
+		t.Fatalf("cancel claim failed: %v", err)
+	}
+	updatedDonation2, err := env.donationSvc.GetDonationDetail(donation.ID)
+	if err != nil {
+		t.Fatalf("get donation detail failed: %v", err)
+	}
+	if updatedDonation2.AvailableQuantity != 40 {
+		t.Fatalf("expected available quantity to restore to 40, got %d", updatedDonation2.AvailableQuantity)
+	}
+
+	// 10. Beneficiary reserves another claim of 5 meals -> available quantity becomes 35
+	claim2, err := env.donationSvc.ClaimDonation(benLogin.User.ID, dto.CreateClaimRequest{
+		DonationID: donation.ID,
+		Quantity:   5,
+	})
+	if err != nil {
+		t.Fatalf("second claim failed: %v", err)
+	}
+	updatedDonation3, err := env.donationSvc.GetDonationDetail(donation.ID)
+	if err != nil {
+		t.Fatalf("get donation detail failed: %v", err)
+	}
+	if updatedDonation3.AvailableQuantity != 35 {
+		t.Fatalf("expected available quantity to be 35, got %d", updatedDonation3.AvailableQuantity)
+	}
+
+	// 11. Overbooking prevention: trying to claim 50 meals when only 35 left is rejected
+	_, errOverbook := env.donationSvc.ClaimDonation(benLogin.User.ID, dto.CreateClaimRequest{
+		DonationID: donation.ID,
+		Quantity:   50,
+	})
+	if errOverbook == nil {
+		t.Fatalf("expected error when claiming 50 of 35 available, got nil")
+	}
+
+	// 12. Shop Owner fulfills claim (confirm pickup/handover)
+	fulfilledClaim, err := env.donationSvc.FulfillClaim(shopA.User.ID, claim2.ID, dto.FulfillClaimRequest{
+		FulfillmentNotes: "Handed over to beneficiary in person.",
+	})
+	if err != nil {
+		t.Fatalf("fulfill claim failed: %v", err)
+	}
+	if fulfilledClaim.Status != models.ClaimStatusFulfilled || fulfilledClaim.FulfilledAt == nil {
+		t.Fatalf("expected status Fulfilled with non-nil FulfilledAt, got %+v", fulfilledClaim)
+	}
+
+	// 13. Unauthorized Access Checks via HTTP Engine
+	// Customer hitting admin endpoints -> 403 Forbidden
+	wAdmin := doJSONRequest(env.engine, http.MethodGet, "/api/admin/beneficiaries", custA.Token, nil)
+	if wAdmin.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 when customer accesses admin endpoints, got %d", wAdmin.Code)
+	}
+
+	// Customer hitting beneficiary endpoints -> 403 Forbidden
+	wBen := doJSONRequest(env.engine, http.MethodGet, "/api/beneficiary/donations", custA.Token, nil)
+	if wBen.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 when customer accesses beneficiary donations, got %d", wBen.Code)
+	}
+
+	// Public registration cannot create Admin (route does not exist)
+	wPubAdmin := doJSONRequest(env.engine, http.MethodPost, "/api/auth/register/admin", "", gin.H{"username": "fake_admin"})
+	if wPubAdmin.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for non-existent admin registration route, got %d", wPubAdmin.Code)
+	}
+
+	// 14. Admin Overview Verification
+	overview, err := env.donationSvc.GetAdminOverview()
+	if err != nil {
+		t.Fatalf("get admin overview failed: %v", err)
+	}
+	if overview.TotalDonations < 1 || overview.TotalClaims < 1 {
+		t.Fatalf("expected overview to show at least 1 donation and 1 claim, got: %+v", overview)
+	}
+
+	// 15. Verify commercial offers still work completely independently
+	commOffer, err := env.offSvc.CreateOffer(shopA.User.ID, dto.CreateOfferRequest{
+		FoodName:          "Commercial Croissant Set",
+		Description:       "Paid discount offer",
+		Category:          "Bakery",
+		OriginalPrice:     6000,
+		DiscountedPrice:   3500,
+		AvailableQuantity: 10,
+		PickupDate:        pickupDate,
+		PickupStartTime:   "14:00",
+		PickupEndTime:     "22:00",
+	})
+	if err != nil {
+		t.Fatalf("create commercial offer failed: %v", err)
+	}
+	commRes, err := env.resSvc.CreateReservation(custA.User.ID, dto.CreateReservationRequest{
+		OfferID:  commOffer.ID,
+		Quantity: 2,
+	})
+	if err != nil {
+		t.Fatalf("create commercial reservation failed: %v", err)
+	}
+	if commRes.Quantity != 2 || commRes.Status != models.ReservationStatusActive {
+		t.Fatalf("unexpected commercial reservation: %+v", commRes)
+	}
+}

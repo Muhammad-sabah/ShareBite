@@ -1,7 +1,12 @@
 import axios, { AxiosError } from 'axios';
 import {
+  AdminDonationOverview,
   ApiErrorPayload,
   AuthResponse,
+  BeneficiaryProfile,
+  DonationClaim,
+  FoodCategory,
+  FoodDonation,
   Offer,
   Reservation,
   ShopDashboardStats,
@@ -13,8 +18,14 @@ import {
 const TOKEN_KEY = 'sharebite_auth_token';
 const LEGACY_TOKEN_KEY = 'baqaya_auth_token';
 
+const defaultApiUrl =
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? '/api'
+    : 'https://sharebite-1eho.onrender.com/api';
+
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || defaultApiUrl,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -100,6 +111,22 @@ export const authApi = {
     return data;
   },
 
+  async registerBeneficiary(payload: {
+    full_name: string;
+    phone_number: string;
+    username: string;
+    password: string;
+    organization_name?: string;
+    beneficiary_type: string;
+    family_member_count: number;
+    address: string;
+    id_document_ref?: string;
+    notes?: string;
+  }): Promise<AuthResponse> {
+    const { data } = await apiClient.post<AuthResponse>('/auth/register/beneficiary', payload);
+    return data;
+  },
+
   async me(): Promise<UserProfile> {
     const { data } = await apiClient.get<{ user: UserProfile }>('/auth/me');
     return data.user;
@@ -111,7 +138,7 @@ export const authApi = {
 export const marketplaceApi = {
   async listOffers(params?: { search?: string; category?: string; sort?: string }): Promise<Offer[]> {
     const { data } = await apiClient.get<{ offers: Offer[] }>('/offers', { params });
-    return data.offers;
+    return data?.offers ?? [];
   },
 
   async getOffer(id: number): Promise<Offer> {
@@ -133,7 +160,7 @@ export const customerApi = {
 
   async listReservations(): Promise<Reservation[]> {
     const { data } = await apiClient.get<{ reservations: Reservation[] }>('/customer/reservations');
-    return data.reservations;
+    return data?.reservations ?? [];
   },
 
   async getReservation(id: number): Promise<Reservation> {
@@ -149,7 +176,7 @@ export const customerApi = {
   },
 };
 
-// ---- Shop Owner API ----
+// ---- Shop Owner Commercial API ----
 
 export const shopApi = {
   async getDashboard(): Promise<ShopDashboardStats> {
@@ -169,7 +196,7 @@ export const shopApi = {
   async listOffers(status?: string): Promise<Offer[]> {
     const params = status && status !== 'All' ? { status } : undefined;
     const { data } = await apiClient.get<{ offers: Offer[] }>('/shop/offers', { params });
-    return data.offers;
+    return data?.offers ?? [];
   },
 
   async getOfferDetail(id: number): Promise<Offer> {
@@ -201,7 +228,7 @@ export const shopApi = {
   async listReservations(status?: string): Promise<Reservation[]> {
     const params = status && status !== 'All' ? { status } : undefined;
     const { data } = await apiClient.get<{ reservations: Reservation[] }>('/shop/reservations', { params });
-    return data.reservations;
+    return data?.reservations ?? [];
   },
 
   async getReservationDetail(id: number): Promise<Reservation> {
@@ -219,3 +246,157 @@ export const shopApi = {
   },
 };
 
+// ---- Shop Owner / Donor Food Donation API ----
+
+export const donorShopApi = {
+  async listDonations(): Promise<FoodDonation[]> {
+    const { data } = await apiClient.get<{ donations: FoodDonation[] }>('/shop/donations');
+    return data?.donations ?? [];
+  },
+
+  async getDonation(id: number): Promise<FoodDonation> {
+    const { data } = await apiClient.get<{ donation: FoodDonation }>(`/shop/donations/${id}`);
+    return data.donation;
+  },
+
+  async createDonation(payload: {
+    food_name: string;
+    description: string;
+    category: FoodCategory;
+    quantity: number;
+    image_url?: string;
+    pickup_date: string;
+    pickup_start_time: string;
+    pickup_end_time: string;
+    is_delivery_available: boolean;
+    delivery_notes?: string;
+  }): Promise<{ donation: FoodDonation; message: string }> {
+    const { data } = await apiClient.post<{ donation: FoodDonation; message: string }>('/shop/donations', payload);
+    return data;
+  },
+
+  async cancelDonation(id: number): Promise<{ message: string }> {
+    const { data } = await apiClient.post<{ message: string }>(`/shop/donations/${id}/cancel`);
+    return data;
+  },
+
+  async listClaims(status?: string): Promise<DonationClaim[]> {
+    const params = status && status !== 'All' ? { status } : undefined;
+    const { data } = await apiClient.get<{ claims: DonationClaim[] }>('/shop/donations/claims', { params });
+    return data?.claims ?? [];
+  },
+
+  async fulfillClaim(id: number, notes?: string): Promise<{ claim: DonationClaim; message: string }> {
+    const { data } = await apiClient.post<{ claim: DonationClaim; message: string }>(
+      `/shop/donations/claims/${id}/fulfill`,
+      { fulfillment_notes: notes }
+    );
+    return data;
+  },
+};
+
+// ---- Beneficiary API ----
+
+export const beneficiaryApi = {
+  async getProfile(): Promise<BeneficiaryProfile> {
+    const { data } = await apiClient.get<{ beneficiary: BeneficiaryProfile }>('/beneficiary/profile');
+    return data.beneficiary;
+  },
+
+  async listDonations(params?: { category?: string }): Promise<FoodDonation[]> {
+    const { data } = await apiClient.get<{ donations: FoodDonation[] }>('/beneficiary/donations', { params });
+    return data?.donations ?? [];
+  },
+
+  async getDonation(id: number): Promise<FoodDonation> {
+    const { data } = await apiClient.get<{ donation: FoodDonation }>(`/beneficiary/donations/${id}`);
+    return data.donation;
+  },
+
+  async claimDonation(
+    donationId: number,
+    payload: {
+      quantity: number;
+      delivery_requested?: boolean;
+      delivery_address_note?: string;
+    }
+  ): Promise<{ claim: DonationClaim; message: string }> {
+    const { data } = await apiClient.post<{ claim: DonationClaim; message: string }>(
+      `/beneficiary/donations/${donationId}/claim`,
+      payload
+    );
+    return data;
+  },
+
+  async listClaims(): Promise<DonationClaim[]> {
+    const { data } = await apiClient.get<{ claims: DonationClaim[] }>('/beneficiary/claims');
+    return data?.claims ?? [];
+  },
+
+  async cancelClaim(id: number): Promise<{ message: string }> {
+    const { data } = await apiClient.post<{ message: string }>(`/beneficiary/claims/${id}/cancel`);
+    return data;
+  },
+};
+
+// ---- Admin API ----
+
+export const adminApi = {
+  async listBeneficiaries(status?: string): Promise<BeneficiaryProfile[]> {
+    const params = status && status !== 'All' ? { status } : undefined;
+    const { data } = await apiClient.get<{ beneficiaries: BeneficiaryProfile[] }>('/admin/beneficiaries', { params });
+    return data?.beneficiaries ?? [];
+  },
+
+  async verifyBeneficiary(
+    id: number,
+    status: 'Approved' | 'Rejected',
+    rejectionReason?: string
+  ): Promise<{ beneficiary: BeneficiaryProfile; message: string }> {
+    const { data } = await apiClient.post<{ beneficiary: BeneficiaryProfile; message: string }>(
+      `/admin/beneficiaries/${id}/verify`,
+      {
+        status,
+        rejection_reason: rejectionReason,
+      }
+    );
+    return data;
+  },
+
+  async createBeneficiaryReferral(payload: {
+    full_name: string;
+    phone_number: string;
+    username: string;
+    password: string;
+    organization_name?: string;
+    beneficiary_type: string;
+    family_member_count: number;
+    address: string;
+    partner_name: string;
+    notes?: string;
+  }): Promise<{ beneficiary: BeneficiaryProfile; message: string }> {
+    const { data } = await apiClient.post<{ beneficiary: BeneficiaryProfile; message: string }>(
+      '/admin/beneficiaries/referral',
+      payload
+    );
+    return data;
+  },
+
+  async getDonationsOverview(): Promise<{
+    overview: AdminDonationOverview;
+    recent_donations: FoodDonation[];
+    recent_claims: DonationClaim[];
+  }> {
+    const { data } = await apiClient.get<{
+      overview: AdminDonationOverview;
+      recent_donations: FoodDonation[];
+      recent_claims: DonationClaim[];
+    }>('/admin/donations/overview');
+    return data;
+  },
+
+  async listAllDonations(params?: { status?: string; category?: string }): Promise<FoodDonation[]> {
+    const { data } = await apiClient.get<{ donations: FoodDonation[] }>('/admin/donations', { params });
+    return data?.donations ?? [];
+  },
+};

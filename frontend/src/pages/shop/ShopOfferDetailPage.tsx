@@ -5,6 +5,7 @@ import { shopApi, parseApiError } from '../../services/api';
 import { Offer } from '../../types';
 import { formatIQD, formatPickupDateLabel } from '../../utils/format';
 import { CategoryBadge, DiscountBadge, StatusBadge } from '../../components/Badges';
+import { resolveImageUrl } from '../../utils/imageUrl';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { useToast } from '../../context/ToastContext';
 
@@ -82,7 +83,7 @@ export const ShopOfferDetailPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12">
           <div className="lg:col-span-5 bg-[#F8FAF9] p-6 border-b lg:border-b-0 lg:border-r border-[#E2E8F0]">
             <img
-              src={offer.image_url || '/images/food/other-default.svg'}
+              src={resolveImageUrl(offer.image_url)}
               alt={offer.food_name}
               className="w-full aspect-[16/11] rounded-2xl object-cover bg-white border border-[#E2E8F0] mb-4"
             />

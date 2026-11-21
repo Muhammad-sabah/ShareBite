@@ -21,7 +21,7 @@ export const ShopReservationsPage: React.FC = () => {
     setLoading(true);
     try {
       const list = await shopApi.listReservations(statusFilter);
-      setReservations(list);
+      setReservations(Array.isArray(list) ? list : []);
     } catch (err) {
       showToast('error', parseApiError(err, 'Failed to load shop reservations.').message);
     } finally {
@@ -35,8 +35,8 @@ export const ShopReservationsPage: React.FC = () => {
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return reservations;
-    return reservations.filter(
+    if (!q) return reservations || [];
+    return (reservations || []).filter(
       (r) =>
         r.reservation_code.toLowerCase().includes(q) ||
         (r.customer_name || '').toLowerCase().includes(q) ||
@@ -90,7 +90,7 @@ export const ShopReservationsPage: React.FC = () => {
 
       {loading ? (
         <div className="bg-white rounded-2xl border border-[#E2E8F0] h-56 animate-pulse" />
-      ) : filtered.length === 0 ? (
+      ) : (filtered || []).length === 0 ? (
         <EmptyState
           icon={<ClipboardList className="w-7 h-7" />}
           title="No matching reservations"
@@ -119,7 +119,7 @@ export const ShopReservationsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F1F5F9]">
-                {filtered.map((res) => (
+                {(filtered || []).map((res) => (
                   <tr key={res.id} className="hover:bg-[#F8FAF9] transition">
                     <td className="px-5 py-4 font-black text-[#167C80]">{res.reservation_code}</td>
                     <td className="px-5 py-4 font-semibold text-[#0F172A]">{res.customer_name}</td>
@@ -151,7 +151,7 @@ export const ShopReservationsPage: React.FC = () => {
 
           {/* Mobile Cards */}
           <div className="md:hidden divide-y divide-[#F1F5F9]">
-            {filtered.map((res) => (
+            {(filtered || []).map((res) => (
               <div key={res.id} className="p-4 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black text-[#167C80] bg-[#DFF2F0] px-2.5 py-0.5 rounded-full border border-[#55AAA5]/25">

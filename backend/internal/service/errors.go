@@ -19,4 +19,3 @@ type AppError struct {
 func (e *AppError) Error() string {
 	return e.Message
 }
-

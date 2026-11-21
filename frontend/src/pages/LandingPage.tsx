@@ -30,7 +30,7 @@ export const LandingPage: React.FC = () => {
     marketplaceApi
       .listOffers()
       .then((list) => {
-        if (active) setFeaturedOffers(list.slice(0, 4));
+        if (active) setFeaturedOffers(Array.isArray(list) ? list.slice(0, 4) : []);
       })
       .catch(() => {
         if (active) setFeaturedOffers([]);
@@ -229,9 +229,9 @@ export const LandingPage: React.FC = () => {
 
         {loading ? (
           <OfferGridSkeleton count={4} />
-        ) : featuredOffers.length > 0 ? (
+        ) : (featuredOffers || []).length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredOffers.map((offer) => (
+            {(featuredOffers || []).map((offer) => (
               <OfferCard key={offer.id} offer={offer} readOnlyRole={user?.role === 'shop_owner'} />
             ))}
           </div>
@@ -344,9 +344,9 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Benefits for Customers & Shops */}
+      {/* Benefits for Customers, Shops, & Community */}
       <section id="for-shops" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Customers */}
           <div className="bg-white rounded-3xl border border-[#E2E8F0] p-7 sm:p-9 flex flex-col justify-between shadow-xs">
             <div>
@@ -406,7 +406,7 @@ export const LandingPage: React.FC = () => {
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-[#F57C00] font-bold">✓</span>
-                  <span>Quick customer pickup verification via unique reservation codes</span>
+                  <span>Donate free surplus to verified families and partner charities</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-[#F57C00] font-bold">✓</span>
@@ -419,6 +419,44 @@ export const LandingPage: React.FC = () => {
               className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border-2 border-[#167C80] bg-white hover:bg-[#DFF2F0] text-[#167C80] text-sm font-bold transition w-full sm:w-auto"
             >
               <span>Register Your Shop</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {/* Community Food Assistance */}
+          <div className="bg-white rounded-3xl border border-[#E2E8F0] p-7 sm:p-9 flex flex-col justify-between shadow-xs">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#DFF2F0] text-[#167C80] text-xs font-bold mb-4">
+                <Heart className="w-3.5 h-3.5 text-[#167C80]" />
+                <span>COMMUNITY ASSISTANCE</span>
+              </div>
+              <h3 className="text-2xl font-bold text-[#0F172A] mb-3">
+                Free Food Assistance Program
+              </h3>
+              <ul className="space-y-2.5 text-sm text-[#475569] mb-8">
+                <li className="flex items-center gap-2">
+                  <span className="text-[#167C80] font-bold">✓</span>
+                  <span>100% free surplus meal packages provided by partner businesses</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-[#167C80] font-bold">✓</span>
+                  <span>Strict dignity and confidentiality for individuals, families, and charities</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-[#167C80] font-bold">✓</span>
+                  <span>Transparent pickup windows and flexible manual delivery options</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-[#167C80] font-bold">✓</span>
+                  <span>Admin-verified or NGO partner-referred eligibility</span>
+                </li>
+              </ul>
+            </div>
+            <Link
+              to="/register/beneficiary"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] text-white text-sm font-bold transition shadow-xs w-full sm:w-auto"
+            >
+              <span>Apply for Assistance</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

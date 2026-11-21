@@ -58,7 +58,7 @@ func SyncExpiriesTx(tx *gorm.DB, now time.Time) error {
 
 func (r *Repository) FindUserByRoleAndUsername(role, username string) (*models.User, error) {
 	var user models.User
-	err := r.db.Preload("Shop").
+	err := r.db.Preload("Shop").Preload("BeneficiaryProfile").
 		Where("role = ? AND LOWER(username) = LOWER(?)", role, strings.TrimSpace(username)).
 		First(&user).Error
 	if err != nil {
@@ -69,7 +69,7 @@ func (r *Repository) FindUserByRoleAndUsername(role, username string) (*models.U
 
 func (r *Repository) FindUserByID(id uint64) (*models.User, error) {
 	var user models.User
-	err := r.db.Preload("Shop").First(&user, id).Error
+	err := r.db.Preload("Shop").Preload("BeneficiaryProfile").First(&user, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -295,4 +295,3 @@ func (r *Repository) ShopStats(shopID uint64) (activeOffers, totalOffers, active
 	}
 	return
 }
-

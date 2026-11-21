@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Package, Store, Clock, ArrowRight } from 'lucide-react';
 import { Offer } from '../types';
 import { formatIQD, formatPickupDateLabel } from '../utils/format';
+import { resolveImageUrl } from '../utils/imageUrl';
 import { useCountdown } from '../hooks/useCountdown';
 import { CategoryBadge, DiscountBadge } from './Badges';
 
@@ -20,7 +21,7 @@ export const OfferCard: React.FC<OfferCardProps> = ({ offer, readOnlyRole = fals
       {/* Image Header */}
       <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
         <img
-          src={offer.image_url || '/images/food/other-default.svg'}
+          src={resolveImageUrl(offer.image_url)}
           alt={offer.food_name}
           className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
           loading="lazy"
